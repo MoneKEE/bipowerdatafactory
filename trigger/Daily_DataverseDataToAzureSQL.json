@@ -1,0 +1,39 @@
+{
+	"name": "Daily_DataverseDataToAzureSQL",
+	"properties": {
+		"description": "Trigger for CE to BYOD dat sync (UAT, PROD)",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PROD_DataverseDataToAzureSQL",
+					"type": "PipelineReference"
+				}
+			},
+			{
+				"pipelineReference": {
+					"referenceName": "UAT_DataverseDataToAzureSQL",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2022-04-05T13:56:00",
+				"timeZone": "Mountain Standard Time",
+				"schedule": {
+					"minutes": [
+						30
+					],
+					"hours": [
+						2
+					]
+				}
+			}
+		}
+	}
+}

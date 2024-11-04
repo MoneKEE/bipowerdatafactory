@@ -1,0 +1,153 @@
+{
+	"name": "PROD_DataverseDataToAzureSQL",
+	"properties": {
+		"activities": [
+			{
+				"name": "Set entityList",
+				"description": "",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "entityList",
+					"value": [
+						"account",
+						"contact",
+						"opportunity",
+						"vs360_employee",
+						"vs360_job",
+						"vs360_joblead",
+						"systemuser",
+						"vs360_contractline",
+						"vs360_subopportunityservice",
+						"pwr_companytype",
+						"pwr_companytypeassignment",
+						"vs360_industry",
+						"pwr_industryassignment",
+						"pwr_serviceassignment",
+						"pwr_services",
+						"pwr_specialties",
+						"pwr_specialtyassignment",
+						"vs360_address",
+						"pwr_department",
+						"pwr_disciplinelead",
+						"pwr_naicscode",
+						"pwr_naicsassignment",
+						"pwr_ucp3rdpartycertifications",
+						"vs360_registration",
+						"pwr_certification",
+						"vs360_state",
+						"vs360_country",
+						"pwr_opportunity_vs360_country",
+						"pwr_opportunity_vs360_state",
+						"pwr_vs360_job_vs360_country",
+						"pwr_vs360_job_vs360_state"
+					]
+				}
+			},
+			{
+				"name": "For each entity",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Set entityList",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@variables('entityList')",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Process entity",
+							"type": "ExecuteDataFlow",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "1.00:00:00",
+								"retry": 1,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataflow": {
+									"referenceName": "df_PROD_DataverseToAzureSQL",
+									"type": "DataFlowReference",
+									"parameters": {
+										"ContainerName": "\"Dataverse Container Name\"",
+										"TableName": {
+											"value": "'@{item()}'",
+											"type": "Expression"
+										}
+									},
+									"datasetParameters": {
+										"SQL": {
+											"SQLTableName": "@concat('crm_',item())"
+										}
+									}
+								},
+								"compute": {
+									"coreCount": 8,
+									"computeType": "General"
+								},
+								"traceLevel": "Fine"
+							}
+						},
+						{
+							"name": "SendNotificationToTeamsChannel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Process entity",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','Process entity')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@replace(json(activity('Process entity').error.Message).Message,'\"','')",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('Process entity').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"variables": {
+			"entityList": {
+				"type": "Array"
+			}
+		},
+		"folder": {
+			"name": "Dataverse"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-04-04T15:44:40Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

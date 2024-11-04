@@ -1,0 +1,51 @@
+{
+	"name": "ds_DelimitedDataDestination_FS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_fileserver_host",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"srcHostName": {
+					"value": "@dataset().srcHostName",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"Directory": {
+				"type": "string"
+			},
+			"filename": {
+				"type": "string"
+			},
+			"srcHostName": {
+				"type": "string",
+				"defaultValue": "\\\\cdc-wherescape\\DataFiles\\"
+			}
+		},
+		"folder": {
+			"name": "Util/Move_Files"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "FileServerLocation",
+				"fileName": {
+					"value": "@concat(split(dataset().filename,'.')[0],formatDateTime(utcNow(),'yyyyMMddHH'),'.',split(dataset().filename,'.')[1])",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().Directory",
+					"type": "Expression"
+				}
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

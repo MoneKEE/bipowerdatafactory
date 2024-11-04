@@ -1,0 +1,30 @@
+{
+	"name": "Trigger_vnj",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PROD_DataverseStringmapToAzureSQL",
+					"type": "PipelineReference"
+				}
+			},
+			{
+				"pipelineReference": {
+					"referenceName": "UAT_DataverseStringmapToAzureSQL",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 24,
+				"startTime": "2022-02-16T17:45:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

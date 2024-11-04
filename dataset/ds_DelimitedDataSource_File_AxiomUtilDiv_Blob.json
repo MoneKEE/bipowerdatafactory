@@ -1,0 +1,40 @@
+{
+	"name": "ds_DelimitedDataSource_File_AxiomUtilDiv_Blob",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_aec360power_adls",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Delimited"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "Utilization_Divisions.csv",
+				"folderPath": "Azure_Data_Factory/Axiom",
+				"fileSystem": "power-bi-blob"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "Week End Date",
+				"type": "String"
+			},
+			{
+				"name": "Utilization",
+				"type": "String"
+			},
+			{
+				"name": "Division",
+				"type": "String"
+			}
+		]
+	}
+}

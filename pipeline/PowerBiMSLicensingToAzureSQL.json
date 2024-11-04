@@ -1,0 +1,1317 @@
+{
+	"name": "PowerBiMSLicensingToAzureSQL",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get Source Folder Items",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_DelimitedDataSource_Folder_Blob",
+						"type": "DatasetReference",
+						"parameters": {
+							"fileSystem": {
+								"value": "@pipeline().parameters.fileSystemName",
+								"type": "Expression"
+							},
+							"folderPath": {
+								"value": "@pipeline().parameters.fileStoreLocation",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "For Each Source Folder Item",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Source Folder Items",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@if(endswith(concat('o',pipeline().parameters.filename),'csv'),json(concat('[{\"name\":\"',pipeline().parameters.filename,'\"}]')),activity('Get Source Folder Items').output.childItems)",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Switch1",
+							"type": "Switch",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"on": {
+									"value": "@split(item().name,'.')[0]",
+									"type": "Expression"
+								},
+								"cases": [
+									{
+										"value": "LicenseInfo",
+										"activities": [
+											{
+												"name": "License Info - ADLS To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"additionalColumns": [
+															{
+																"name": "DSS_RECORD_SOURCE",
+																"value": {
+																	"value": "@concat(pipeline().parameters.fileStoreLocation,'/',pipeline().parameters.source_Directory,'/',item().name)",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "DSS_LOAD_DATE",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.schemaName,'.',pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxLicenseInfo)}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "SkuId",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "SKU_ID",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "SkuPartNumber",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "SKU_PART_NUMBER",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "ConsumedUnits",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "CONSUMED_UNITS",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Enabled",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "ENABLED",
+																	"type": "Int32",
+																	"physicalType": "int"
+																}
+															},
+															{
+																"source": {
+																	"name": "Suspended",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "SUSPENDED",
+																	"type": "Int32",
+																	"physicalType": "int"
+																}
+															},
+															{
+																"source": {
+																	"name": "Warning",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "WARNING",
+																	"type": "Int32",
+																	"physicalType": "int"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_DelimitedDataSource_File_Blob",
+														"type": "DatasetReference",
+														"parameters": {
+															"fileSystem": {
+																"value": "@pipeline().parameters.fileSystemName",
+																"type": "Expression"
+															},
+															"fileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"folderPath": {
+																"value": "@pipeline().parameters.fileStoreLocation",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxLicenseInfo)",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.schemaName",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "License Info Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "License Info - ADLS To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','License Info - ADLS To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('License Info - ADLS To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('License Info - ADLS To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "LicensedUsers",
+										"activities": [
+											{
+												"name": "Licensed Users - ADLS To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"additionalColumns": [
+															{
+																"name": "DSS_RECORD_SOURCE",
+																"value": {
+																	"value": "@concat(pipeline().parameters.fileStoreLocation,'/',pipeline().parameters.source_Directory,'/',item().name)",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "DSS_LOAD_DATE",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.schemaName,'.',pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxLicensedUsers)}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "DisplayName",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "SIGN_IN_NAME",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "UserPrincipalName",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "USER_PRINCIPAL_NAME",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "AccountSkuId",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "ACCOUNT_SKU_ID",
+																	"type": "Int32",
+																	"physicalType": "int"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_DelimitedDataSource_File_Blob",
+														"type": "DatasetReference",
+														"parameters": {
+															"fileSystem": {
+																"value": "@pipeline().parameters.fileSystemName",
+																"type": "Expression"
+															},
+															"fileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"folderPath": {
+																"value": "@pipeline().parameters.fileStoreLocation",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxLicensedUsers)",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.schemaName",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Licensed Users Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "Licensed Users - ADLS To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','Licensed Users - ADLS To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('Licensed Users - ADLS To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('Licensed Users - ADLS To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "LicensedUserswithID",
+										"activities": [
+											{
+												"name": "Licensed Users with ID - ADLS To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"additionalColumns": [
+															{
+																"name": "DSS_RECORD_SOURCE",
+																"value": {
+																	"value": "@concat(pipeline().parameters.fileStoreLocation,'/',pipeline().parameters.source_Directory,'/',item().name)",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "DSS_LOAD_DATE",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.schemaName,'.',pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxLicensedUsersWithID)}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"enableSkipIncompatibleRow": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "DistinguishedName",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "DISTINGUISHED_NAME",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "EmployeeID",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "EMPLOYEE_ID",
+																	"type": "Int32",
+																	"physicalType": "int"
+																}
+															},
+															{
+																"source": {
+																	"name": "EmployeeNumber",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "EMPLOYEE_NUMBER",
+																	"type": "Int32",
+																	"physicalType": "int"
+																}
+															},
+															{
+																"source": {
+																	"name": "Enabled",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "ENABLED",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "GivenName",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "GIVEN_NAME",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "mail",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "MAIL",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Name",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "NAME",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "ObjectClass",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "OBJECT_CLASS",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "ObjectGUID",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "OBJECT_GUID",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "SamAccountName",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "SAM_ACCOUNT_NAME",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "SID",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "SID",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Surname",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "SURNAME",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "UserPrincipalName",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "USER_PRINCIPLE_NAME",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_DelimitedDataSource_File_Blob",
+														"type": "DatasetReference",
+														"parameters": {
+															"fileSystem": {
+																"value": "@pipeline().parameters.fileSystemName",
+																"type": "Expression"
+															},
+															"fileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"folderPath": {
+																"value": "@pipeline().parameters.fileStoreLocation",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxLicensedUsersWithID)",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.schemaName",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Licensed Users with ID Load Failure - Notify Teams",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "Licensed Users with ID - ADLS To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','Licensed Users with ID - ADLS To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('Licensed Users with ID - ADLS To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('Licensed Users with ID - ADLS To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									}
+								]
+							}
+						},
+						{
+							"name": "Switch1 Failure - Notify Teams Channel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Switch1",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','Switch1')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@activity('Switch1').error.Message",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('Switch1').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Load to ODS Tables",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Switch1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": {
+									"value": "@if(equals(split(item().name,'.')[0],'LicenseInfo'),'[MSLicensing].[UPSERT_ODS_LICENSE_INFO]',if(equals(split(item().name,'.')[0],'LicensedUsers'),'[MSLicensing].[UPSERT_ODS_LICENSED_USERS]',if(equals(split(item().name,'.')[0],'LicensedUserswithID'),'[MSLicensing].[UPSERT_ODS_LICENSED_USERS_WITH_ID]','')))",
+									"type": "Expression"
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_power_d365_bi_01",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "ODS to Stage Tables",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Load to ODS Tables",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": {
+									"value": "@if(equals(split(item().name,'.')[0],'LicenseInfo'),'[MSLicensing].[INSERT_STAGE_LICENSE_INFO]',if(equals(split(item().name,'.')[0],'LicensedUsers'),'[MSLicensing].[INSERT_STAGE_LICENSED_USERS]',if(equals(split(item().name,'.')[0],'LicensedUserswithID'),'[MSLicensing].[INSERT_STAGE_LICENSED_USERS_WITH_ID]','')))",
+									"type": "Expression"
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_power_d365_bi_01",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Stage to Fact Tables",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "ODS to Stage Tables",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": {
+									"value": "@if(equals(split(item().name,'.')[0],'LicenseInfo'),'[MSLicensing].[UPSERT_FACT_MS_LICENSE_INFO]',if(equals(split(item().name,'.')[0],'LicensedUsers'),'[MSLicensing].[UPSERT_FACT_LICENSED_USERS]',if(equals(split(item().name,'.')[0],'LicensedUserswithID'),'[MSLicensing].[UPSERT_FACT_MS_LICENSED_USERS_WITH_ID]','')))",
+									"type": "Expression"
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_power_d365_bi_01",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Load to ODS Failure - Notify Teams Channel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Load to ODS Tables",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','Load To ODS Tables')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@replace(activity('Load to ODS Tables').error.Message,'\"','')",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('Load to ODS Tables').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "ODS to Stage Failure - Notify Teams Channel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "ODS to Stage Tables",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','ODS To Stage Tables')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@replace(activity('ODS to Stage Tables').error.Message,'\"','')",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('ODS to Stage Tables').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Stage to Fact Failure - Notify Teams Channel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Stage to Fact Tables",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','Stage To Fact Tables')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@replace(activity('Stage to Fact Tables').error.Message,'\"','')",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('Stage to Fact Tables').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Move to Archive",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Switch1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "MoveFile",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"SourceStore_Location": {
+										"value": "@pipeline().parameters.fileStoreLocation",
+										"type": "Expression"
+									},
+									"SourceStore_Directory": {
+										"value": "@pipeline().parameters.source_Directory",
+										"type": "Expression"
+									},
+									"DestinationStore_Location": {
+										"value": "@pipeline().parameters.fileStoreLocation",
+										"type": "Expression"
+									},
+									"DestinationStore_Directory": {
+										"value": "@pipeline().parameters.destination_Directory",
+										"type": "Expression"
+									},
+									"fileSystemName": {
+										"value": "@pipeline().parameters.fileShareName",
+										"type": "Expression"
+									},
+									"filename": {
+										"value": "@item().name",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Move to Archive Failure - Notify Teams Channel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Move to Archive",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','Move to Archive')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@replace(activity('Move to Archive').error.Message,'\\','\\\\')",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('Move to Archive').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Delete Blob",
+							"type": "Delete",
+							"dependsOn": [
+								{
+									"activity": "Move to Archive",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ds_DelimitedDataSource_File_Blob",
+									"type": "DatasetReference",
+									"parameters": {
+										"fileSystem": {
+											"value": "@pipeline().parameters.fileSystemName",
+											"type": "Expression"
+										},
+										"fileName": {
+											"value": "@item().name",
+											"type": "Expression"
+										},
+										"folderPath": {
+											"value": "@pipeline().parameters.fileStoreLocation",
+											"type": "Expression"
+										}
+									}
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Get Items Failure - Notify Teams Channel",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Get Source Folder Items",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "SendNotificationToTeamsChannel",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"pipelineRunId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"activityName": {
+							"value": "@concat(pipeline().Pipeline,'-','Get Source Folder Items')",
+							"type": "Expression"
+						},
+						"activityMessage": {
+							"value": "@activity('Get Source Folder Items').error.Message",
+							"type": "Expression"
+						},
+						"activityDuration": {
+							"value": "@activity('Get Source Folder Items').Duration",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"schemaName": {
+				"type": "string",
+				"defaultValue": "MSLicensing"
+			},
+			"pfxLOAD": {
+				"type": "string",
+				"defaultValue": "LOAD"
+			},
+			"sfxLicenseInfo": {
+				"type": "string",
+				"defaultValue": "LICENSE_INFO"
+			},
+			"sfxLicensedUsers": {
+				"type": "string",
+				"defaultValue": "LICENSED_USERS"
+			},
+			"sfxLicensedUsersWithID": {
+				"type": "string",
+				"defaultValue": "LICENSED_USERS_WITH_ID"
+			},
+			"pfxODS": {
+				"type": "string",
+				"defaultValue": "ODS"
+			},
+			"pfxSTAGE": {
+				"type": "string",
+				"defaultValue": "STAGE"
+			},
+			"pfxFACT": {
+				"type": "string",
+				"defaultValue": "FACT"
+			},
+			"fileStoreLocation": {
+				"type": "string",
+				"defaultValue": "Azure_Data_Factory/MSLicensing"
+			},
+			"source_Directory": {
+				"type": "string",
+				"defaultValue": "New"
+			},
+			"destination_Directory": {
+				"type": "string",
+				"defaultValue": "Archive"
+			},
+			"fileSystemName": {
+				"type": "string",
+				"defaultValue": "power-bi-blob"
+			},
+			"fileShareName": {
+				"type": "string",
+				"defaultValue": "\\\\cdcfs1"
+			},
+			"filename": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"fileName": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "PowerBI"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-04-04T15:44:40Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

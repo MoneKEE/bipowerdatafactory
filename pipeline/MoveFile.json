@@ -1,0 +1,178 @@
+{
+	"name": "MoveFile",
+	"properties": {
+		"description": "Move files from one folder to another folder",
+		"activities": [
+			{
+				"name": "CopyAFile",
+				"description": "Copy a file from the source store to the destination store.",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "FileServerReadSettings",
+							"recursive": false,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						},
+						"recursive": false
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "FileServerWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": {
+								"value": "@concat('.',split(pipeline().parameters.filename,'.')[1])",
+								"type": "Expression"
+							}
+						}
+					},
+					"enableStaging": false,
+					"dataIntegrationUnits": 0,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_DelimitedDataSource_File_FS",
+						"type": "DatasetReference",
+						"parameters": {
+							"Directory": {
+								"value": "@concat(pipeline().parameters.SourceStore_Location,'/',pipeline().parameters.SourceStore_Directory)",
+								"type": "Expression"
+							},
+							"fileName": {
+								"value": "@pipeline().parameters.filename",
+								"type": "Expression"
+							},
+							"srcHostName": {
+								"value": "@pipeline().parameters.fileSystemName",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_DelimitedDataDestination_FS",
+						"type": "DatasetReference",
+						"parameters": {
+							"Directory": {
+								"value": "@concat(pipeline().parameters.DestinationStore_Location,'/',pipeline().parameters.DestinationStore_Directory)",
+								"type": "Expression"
+							},
+							"filename": {
+								"value": "@pipeline().parameters.filename",
+								"type": "Expression"
+							},
+							"srcHostName": {
+								"value": "@pipeline().parameters.fileSystemName",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "DeleteAFile",
+				"description": "Delete a file from the source store",
+				"type": "Delete",
+				"dependsOn": [
+					{
+						"activity": "CopyAFile",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_DelimitedDataSource_File_FS",
+						"type": "DatasetReference",
+						"parameters": {
+							"Directory": {
+								"value": "@concat(pipeline().parameters.SourceStore_Location,'/',pipeline().parameters.SourceStore_Directory)",
+								"type": "Expression"
+							},
+							"fileName": {
+								"value": "@pipeline().parameters.filename",
+								"type": "Expression"
+							},
+							"srcHostName": {
+								"value": "@pipeline().parameters.fileSystemName",
+								"type": "Expression"
+							}
+						}
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "FileServerReadSettings",
+						"recursive": false
+					}
+				}
+			}
+		],
+		"parameters": {
+			"SourceStore_Location": {
+				"type": "String",
+				"defaultValue": "Azure_Data_Factory/Axiom"
+			},
+			"SourceStore_Directory": {
+				"type": "String",
+				"defaultValue": "New"
+			},
+			"DestinationStore_Location": {
+				"type": "String",
+				"defaultValue": "Azure_Data_Factory/Axiom"
+			},
+			"DestinationStore_Directory": {
+				"type": "String",
+				"defaultValue": "Archive"
+			},
+			"fileSystemName": {
+				"type": "string",
+				"defaultValue": "\\\\cdcfs1"
+			},
+			"filename": {
+				"type": "string",
+				"defaultValue": "AchievedMultiplier.csv"
+			}
+		},
+		"folder": {
+			"name": "Util/Move Files"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-04-04T15:44:39Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

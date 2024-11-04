@@ -1,0 +1,111 @@
+{
+	"name": "Snowflake_to_Azure_Schema_Migration",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.jsonObject.tables",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "To AzureSQL",
+							"type": "ExecuteDataFlow",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataflow": {
+									"referenceName": "df_Snowflake_Azure_Migration",
+									"type": "DataFlowReference",
+									"datasetParameters": {
+										"srcSnowflake": {
+											"tableName": {
+												"value": "@concat(pipeline().parameters.jsonObject.tblNamePrefix,'_',item())",
+												"type": "Expression"
+											},
+											"dbName": {
+												"value": "@pipeline().parameters.srcDbName",
+												"type": "Expression"
+											},
+											"schemaName": {
+												"value": "@pipeline().parameters.jsonObject.srcSchema",
+												"type": "Expression"
+											},
+											"warehouseName": {
+												"value": "@pipeline().parameters.srcWarehouseName",
+												"type": "Expression"
+											},
+											"roleName": {
+												"value": "@pipeline().parameters.srcRoleName",
+												"type": "Expression"
+											}
+										},
+										"tgtAzureSQL": {
+											"SQLTableName": {
+												"value": "@concat(pipeline().parameters.jsonObject.tblNamePrefix,'_',item())",
+												"type": "Expression"
+											},
+											"SQLSchemaName": {
+												"value": "@pipeline().parameters.jsonObject.tgtSchema",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								"compute": {
+									"coreCount": 8,
+									"computeType": "General"
+								},
+								"traceLevel": "Fine"
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"srcFileName": {
+				"type": "string",
+				"defaultValue": "data_0_0_0.snappy.parquet"
+			},
+			"jsonObject": {
+				"type": "object"
+			},
+			"srcDbName": {
+				"type": "string",
+				"defaultValue": "POWER_PRODUCTION_DATABASE"
+			},
+			"srcWarehouseName": {
+				"type": "string",
+				"defaultValue": "POWER_PRODUCTION_WAREHOUSE"
+			},
+			"srcRoleName": {
+				"type": "string",
+				"defaultValue": "WHERESCAPE_PROD_ROLE"
+			}
+		},
+		"variables": {
+			"tableList": {
+				"type": "Array"
+			}
+		},
+		"folder": {
+			"name": "Util/Snowflake to BYOD"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-04-04T15:44:40Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

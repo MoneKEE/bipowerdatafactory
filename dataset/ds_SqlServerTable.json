@@ -1,0 +1,40 @@
+{
+	"name": "ds_SqlServerTable",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_appsdev_sql",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"tableName": {
+				"type": "string"
+			},
+			"schema": {
+				"type": "string"
+			},
+			"serverName": {
+				"type": "string"
+			},
+			"dbName": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "SQL"
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().schema",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().tableName",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

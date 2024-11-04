@@ -1,0 +1,32 @@
+{
+	"name": "trigger-file-retrieve",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "RetrieveFiles",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"SourceStore_Location": "Azure_Data_Factory",
+					"SourceStore_Directory": "New",
+					"DestinationStore_Location": "Azure_Data_Factory",
+					"DestinationStore_Directory": "Archive",
+					"fileSystemName": "power-bi-blob",
+					"fileShareName": "\\\\cdcfs1"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 1,
+				"startTime": "2023-04-09T22:52:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

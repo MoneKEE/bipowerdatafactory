@@ -1,0 +1,36 @@
+{
+	"name": "trigger-power-bi-market-info",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PowerBiMarketInfoToAzureSQL",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"srcSchema": "dbo",
+					"srcDb": "StockInfo",
+					"tgtSchema": "Corporate",
+					"tgtDb": "powerd365biuat",
+					"pfxLOAD": "LOAD_CORP",
+					"pfxSTAGE": "STAGE_CORP",
+					"pfxFACT": "FACT_CORP",
+					"pfxDIM": "DIM_CORP",
+					"pfxVIEW": "VIEW_CORP",
+					"srcServerName": "appsdev-sql-dev"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2023-03-21T16:34:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

@@ -1,0 +1,22 @@
+{
+	"name": "ls_dynamics_ce_uat",
+	"properties": {
+		"annotations": [],
+		"type": "DynamicsCrm",
+		"typeProperties": {
+			"deploymentType": "Online",
+			"serviceUri": "https://powercrmdev.crm.dynamics.com/",
+			"authenticationType": "AADServicePrincipal",
+			"servicePrincipalCredentialType": "ServicePrincipalKey",
+			"servicePrincipalId": "3df30d8a-a506-43dc-9e3f-5c047d8f4cf6",
+			"servicePrincipalCredential": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "sec-powercrmdev-key"
+			}
+		}
+	}
+}

@@ -1,0 +1,25 @@
+{
+	"name": "ls_aec360power_fs",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"parameters": {
+			"fileShareName": {
+				"type": "string",
+				"defaultValue": "power-bi-fs"
+			}
+		},
+		"annotations": [],
+		"type": "AzureFileStorage",
+		"typeProperties": {
+			"connectionString": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "sec-aec360power-fs-connectionstring"
+			},
+			"fileShare": "@{linkedService().fileShareName}"
+		}
+	}
+}

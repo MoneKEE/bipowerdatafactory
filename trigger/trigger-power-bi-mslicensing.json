@@ -1,0 +1,41 @@
+{
+	"name": "trigger-power-bi-mslicensing",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PowerBiMSLicensingToAzureSQL",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"schemaName": "MSLicensing",
+					"pfxLOAD": "LOAD",
+					"sfxLicenseInfo": "LICENSE_INFO",
+					"sfxLicensedUsers": "LICENSED_USERS",
+					"sfxLicensedUsersWithID": "LICENSED_USERS_WITH_ID",
+					"pfxODS": "ODS",
+					"pfxSTAGE": "STAGE",
+					"pfxFACT": "FACT",
+					"fileStoreLocation": "Azure_Data_Factory/MSLicensing",
+					"source_Directory": "New",
+					"destination_Directory": "Archive",
+					"fileSystemName": "power-bi-blob",
+					"fileShareName": "\\\\cdcfs1",
+					"filename": "@triggerBody().fileName"
+				}
+			}
+		],
+		"type": "BlobEventsTrigger",
+		"typeProperties": {
+			"blobPathBeginsWith": "/power-bi-blob/blobs/Azure_Data_Factory/MSLicensing/",
+			"blobPathEndsWith": ".csv",
+			"ignoreEmptyBlobs": true,
+			"scope": "/subscriptions/d27e79e1-9d17-4dea-8f77-fbc284f2ce04/resourceGroups/dynamics-bi-integrations-dev/providers/Microsoft.Storage/storageAccounts/aec360powerdev",
+			"events": [
+				"Microsoft.Storage.BlobCreated"
+			]
+		}
+	}
+}

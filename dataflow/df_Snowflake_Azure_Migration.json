@@ -1,0 +1,46 @@
+{
+	"name": "df_Snowflake_Azure_Migration",
+	"properties": {
+		"folder": {
+			"name": "Util"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_SnowflakeTable",
+						"type": "DatasetReference"
+					},
+					"name": "srcSnowflake"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_AzureSQLDatabase",
+						"type": "DatasetReference"
+					},
+					"name": "tgtAzureSQL"
+				}
+			],
+			"transformations": [],
+			"scriptLines": [
+				"source(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> srcSnowflake",
+				"srcSnowflake sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     recreate:true,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> tgtAzureSQL"
+			]
+		}
+	}
+}

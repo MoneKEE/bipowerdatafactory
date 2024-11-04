@@ -1,0 +1,3832 @@
+{
+	"name": "PowerBiMarketInfoToAzureSQL",
+	"properties": {
+		"activities": [
+			{
+				"name": "Set tableList variable",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "tableList",
+					"value": [
+						"Chart",
+						"Company",
+						"Industry",
+						"Market",
+						"MarketHistory",
+						"News",
+						"PowerSymbols",
+						"Quote",
+						"SymbolToIndustry"
+					]
+				}
+			},
+			{
+				"name": "Load ForEach",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Set tableList variable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@variables('tableList')",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Switch1",
+							"type": "Switch",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"on": {
+									"value": "@item()",
+									"type": "Expression"
+								},
+								"cases": [
+									{
+										"value": "Chart",
+										"activities": [
+											{
+												"name": "Chart - To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "SqlServerSource",
+														"queryTimeout": "02:00:00",
+														"partitionOption": "None"
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.tgtSchema,'.',pipeline().parameters.pfxLOAD,'_',item())}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "ChartId",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "CHARTID",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "date",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																},
+																"sink": {
+																	"name": "DATE",
+																	"type": "DateTime",
+																	"physicalType": "date"
+																}
+															},
+															{
+																"source": {
+																	"name": "high",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "HIGH",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "low",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "LOW",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "volume",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "VOLUME",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "openPrice",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "OPENPRICE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "closePrice",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "CLOSEPRICE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "uHigh",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "UHIGH",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "uLow",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "ULOW",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "uVolume",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "UVOLUME",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "uOpen",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "UOPEN",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "uClose",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "UCLOSE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "changeOverTime",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "CHANGEOVERTIME",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "label",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "LABEL",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "change",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "CHANGE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "changePercent",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "CHANGEPERCENT",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "pullTimeUtc",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																},
+																"sink": {
+																	"name": "PULLTIMEUTC",
+																	"type": "DateTime",
+																	"physicalType": "date"
+																}
+															},
+															{
+																"source": {
+																	"name": "symbol",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "SYMBOL",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_SqlServerTable",
+														"type": "DatasetReference",
+														"parameters": {
+															"tableName": {
+																"value": "@item()",
+																"type": "Expression"
+															},
+															"schema": {
+																"value": "@pipeline().parameters.srcSchema",
+																"type": "Expression"
+															},
+															"serverName": {
+																"value": "@pipeline().parameters.srcServerName",
+																"type": "Expression"
+															},
+															"dbName": {
+																"value": "@pipeline().parameters.srcDb",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',item())",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.tgtSchema",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Chart Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "Chart - To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','Chart - To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('Chart - To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('Chart - To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "Company",
+										"activities": [
+											{
+												"name": "Company - To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "SqlServerSource",
+														"additionalColumns": [
+															{
+																"name": "DSS_RECORD_SOURCE",
+																"value": {
+																	"value": "@concat(pipeline().parameters.srcDb,'.',pipeline().parameters.srcSchema,'.',item())",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "DSS_LOAD_DATE",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"queryTimeout": "02:00:00",
+														"partitionOption": "None"
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.tgtSchema,'.',pipeline().parameters.pfxLOAD,'_',item())}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "CompanyId",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "COMPANYID",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "symbol",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "SYMBOL",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "companyName",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "COMPANYNAME",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "exchange",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "EXCHANGE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "industry",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "INDUSTRY",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "website",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "WEBSITE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "description",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "DESCRIPTION",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "CEO",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "CEO",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "securityName",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "SECURITYNAME",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "issueType",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "ISSUETYPE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "sector",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "SECTOR",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "primarySicCode",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "PRIMARYSICCODE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "employees",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "EMPLOYEES",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "tags",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "TAGS",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "address",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "ADDRESS",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "address2",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "ADDRESS2",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "state",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "STATE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "city",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "CITY",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "zip",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "ZIP",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "country",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "COUNTRY",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "phone",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "PHONE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_RECORD_SOURCE"
+																},
+																"sink": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_LOAD_DATE"
+																},
+																"sink": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_SqlServerTable",
+														"type": "DatasetReference",
+														"parameters": {
+															"tableName": {
+																"value": "@item()",
+																"type": "Expression"
+															},
+															"schema": {
+																"value": "@pipeline().parameters.srcSchema",
+																"type": "Expression"
+															},
+															"serverName": {
+																"value": "@pipeline().parameters.srcServerName",
+																"type": "Expression"
+															},
+															"dbName": {
+																"value": "@pipeline().parameters.srcDb",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',item())",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.tgtSchema",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Company Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "Company - To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','Company - To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('Company - To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('Company - To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "Industry",
+										"activities": [
+											{
+												"name": "Industry - To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "SqlServerSource",
+														"queryTimeout": "02:00:00",
+														"partitionOption": "None"
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.tgtSchema,'.',pipeline().parameters.pfxLOAD,'_',item())}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "IndustryId",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "INDUSTRYID",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "IndustryType",
+																	"type": "String",
+																	"physicalType": "nchar"
+																},
+																"sink": {
+																	"name": "INDUSTRYTYPE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_SqlServerTable",
+														"type": "DatasetReference",
+														"parameters": {
+															"tableName": {
+																"value": "@item()",
+																"type": "Expression"
+															},
+															"schema": {
+																"value": "@pipeline().parameters.srcSchema",
+																"type": "Expression"
+															},
+															"serverName": {
+																"value": "@pipeline().parameters.srcServerName",
+																"type": "Expression"
+															},
+															"dbName": {
+																"value": "@pipeline().parameters.srcDb",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',item())",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.tgtSchema",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Industry Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "Industry - To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','Industry - To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('Industry - To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('Industry - To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "Market",
+										"activities": [
+											{
+												"name": "Market - To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "SqlServerSource",
+														"additionalColumns": [
+															{
+																"name": "DSS_RECORD_SOURCE",
+																"value": {
+																	"value": "@concat(pipeline().parameters.srcDb,'.',pipeline().parameters.srcSchema,'.',item())",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "DSS_LOAD_DATE",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"queryTimeout": "02:00:00",
+														"partitionOption": "None"
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.tgtSchema,'.',pipeline().parameters.pfxLOAD,'_',item())}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "MarketId",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "MARKETID",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "MarketKey",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "MARKETKEY",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "weight",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "WEIGHT",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "description",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "DESCRIPTION",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "lastUpdated",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																},
+																"sink": {
+																	"name": "LASTUPDATED",
+																	"type": "DateTime",
+																	"physicalType": "date"
+																}
+															},
+															{
+																"source": {
+																	"name": "value",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "VALUE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "InUse",
+																	"type": "Boolean",
+																	"physicalType": "bit"
+																},
+																"sink": {
+																	"name": "INUSE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "IsCommodity",
+																	"type": "Boolean",
+																	"physicalType": "bit"
+																},
+																"sink": {
+																	"name": "ISCOMMODITY",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_RECORD_SOURCE"
+																},
+																"sink": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_LOAD_DATE"
+																},
+																"sink": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_SqlServerTable",
+														"type": "DatasetReference",
+														"parameters": {
+															"tableName": {
+																"value": "@item()",
+																"type": "Expression"
+															},
+															"schema": {
+																"value": "@pipeline().parameters.srcSchema",
+																"type": "Expression"
+															},
+															"serverName": {
+																"value": "@pipeline().parameters.srcServerName",
+																"type": "Expression"
+															},
+															"dbName": {
+																"value": "@pipeline().parameters.srcDb",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',item())",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.tgtSchema",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Market Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "Market - To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','Market - To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('Market - To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('Market - To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "MarketHistory",
+										"activities": [
+											{
+												"name": "MarketHistory - To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "SqlServerSource",
+														"queryTimeout": "02:00:00",
+														"partitionOption": "None"
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.tgtSchema,'.',pipeline().parameters.pfxLOAD,'_',item())}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "MarketHistoryId",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "MARKETHISTORYID",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "MarketKey",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "MARKETKEY",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Value",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 4,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "VALUE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 4,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "ValueEpocDate",
+																	"type": "Int64",
+																	"physicalType": "bigint"
+																},
+																"sink": {
+																	"name": "VALUEEPOCDATE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "ValueEpocUpdated",
+																	"type": "Int64",
+																	"physicalType": "bigint"
+																},
+																"sink": {
+																	"name": "VALUEEPOCUPDATED",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "ValueDate",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																},
+																"sink": {
+																	"name": "VALUEDATE",
+																	"type": "DateTime",
+																	"physicalType": "date"
+																}
+															},
+															{
+																"source": {
+																	"name": "ValueUpdated",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																},
+																"sink": {
+																	"name": "VALUEUPDATED",
+																	"type": "DateTime",
+																	"physicalType": "date"
+																}
+															},
+															{
+																"source": {
+																	"name": "lastUpdated",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																},
+																"sink": {
+																	"name": "LASTUPDATED",
+																	"type": "DateTime",
+																	"physicalType": "date"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_SqlServerTable",
+														"type": "DatasetReference",
+														"parameters": {
+															"tableName": {
+																"value": "@item()",
+																"type": "Expression"
+															},
+															"schema": {
+																"value": "@pipeline().parameters.srcSchema",
+																"type": "Expression"
+															},
+															"serverName": {
+																"value": "@pipeline().parameters.srcServerName",
+																"type": "Expression"
+															},
+															"dbName": {
+																"value": "@pipeline().parameters.srcDb",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',item())",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.tgtSchema",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "MarketHistory Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "MarketHistory - To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','MarketHistory - To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('MarketHistory - To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('MarketHistory - To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "News",
+										"activities": [
+											{
+												"name": "News - To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "SqlServerSource",
+														"additionalColumns": [
+															{
+																"name": "DSS_RECORD_SOURCE",
+																"value": {
+																	"value": "@concat(pipeline().parameters.srcDb,'.',pipeline().parameters.srcSchema,'.',item())",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "DSS_LOAD_DATE",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"queryTimeout": "02:00:00",
+														"partitionOption": "None"
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.tgtSchema,'.',pipeline().parameters.pfxLOAD,'_',item())}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "NewsId",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "NEWSID",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "Symbol",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "SYMBOL",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "datetime",
+																	"type": "Int64",
+																	"physicalType": "bigint"
+																},
+																"sink": {
+																	"name": "DATETIME",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "headline",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "HEADLINE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "source",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "SOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "url",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "URL",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "summary",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "SUMMARY",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "related",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "RELATED",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "image",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "IMAGE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "lang",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "LANG",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "hasPaywall",
+																	"type": "Boolean",
+																	"physicalType": "bit"
+																},
+																"sink": {
+																	"name": "HASPAYWALL",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_RECORD_SOURCE"
+																},
+																"sink": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_LOAD_DATE"
+																},
+																"sink": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_SqlServerTable",
+														"type": "DatasetReference",
+														"parameters": {
+															"tableName": {
+																"value": "@item()",
+																"type": "Expression"
+															},
+															"schema": {
+																"value": "@pipeline().parameters.srcSchema",
+																"type": "Expression"
+															},
+															"serverName": {
+																"value": "@pipeline().parameters.srcServerName",
+																"type": "Expression"
+															},
+															"dbName": {
+																"value": "@pipeline().parameters.srcDb",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',item())",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.tgtSchema",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "News Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "News - To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','News - To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('News - To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('News - To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "PowerSymbols",
+										"activities": [
+											{
+												"name": "PowerSymbols - To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "SqlServerSource",
+														"additionalColumns": [
+															{
+																"name": "DSS_RECORD_SOURCE",
+																"value": {
+																	"value": "@concat(pipeline().parameters.srcDb,'.',pipeline().parameters.srcSchema,'.',item())",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "DSS_LOAD_DATE",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"queryTimeout": "02:00:00",
+														"partitionOption": "None"
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.tgtSchema,'.',pipeline().parameters.pfxLOAD,'_',item())}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "ClientName",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "CLIENTNAME",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "PowerSymbolId",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "POWERSYMBOLID",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "Symbol",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "SYMBOL",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "PowerClientNumber",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "POWERCLIENTNUMBER",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Notes",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "NOTES",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "URL",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "URL",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Client",
+																	"type": "Boolean",
+																	"physicalType": "bit"
+																},
+																"sink": {
+																	"name": "CLIENT",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Competitor",
+																	"type": "Boolean",
+																	"physicalType": "bit"
+																},
+																"sink": {
+																	"name": "COMPETITOR",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "SimulatedIndex",
+																	"type": "Boolean",
+																	"physicalType": "bit"
+																},
+																"sink": {
+																	"name": "SIMULATEDINDEX",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "SimulatedName",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "SIMULATEDNAME",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "LatestPullTimeUtc",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																},
+																"sink": {
+																	"name": "LATESTPULLTIMEUTC",
+																	"type": "DateTime",
+																	"physicalType": "date"
+																}
+															},
+															{
+																"source": {
+																	"name": "LatestError",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "LATESTERROR",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_RECORD_SOURCE"
+																},
+																"sink": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_LOAD_DATE"
+																},
+																"sink": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_SqlServerTable",
+														"type": "DatasetReference",
+														"parameters": {
+															"tableName": {
+																"value": "@item()",
+																"type": "Expression"
+															},
+															"schema": {
+																"value": "@pipeline().parameters.srcSchema",
+																"type": "Expression"
+															},
+															"serverName": {
+																"value": "@pipeline().parameters.srcServerName",
+																"type": "Expression"
+															},
+															"dbName": {
+																"value": "@pipeline().parameters.srcDb",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',item())",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.tgtSchema",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "PowerSymbols Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "PowerSymbols - To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','PowerSymbols - To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('PowerSymbols - To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('PowerSymbols - To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "Quote",
+										"activities": [
+											{
+												"name": "Quote - To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "SqlServerSource",
+														"additionalColumns": [
+															{
+																"name": "DSS_RECORD_SOURCE",
+																"value": {
+																	"value": "@concat(pipeline().parameters.srcDb,'.',pipeline().parameters.srcSchema,'.',item())",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "DSS_LOAD_DATE",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"queryTimeout": "02:00:00",
+														"partitionOption": "None"
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.tgtSchema,'.',pipeline().parameters.pfxLOAD,'_',item())}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "delayedPriceTime",
+																	"type": "Int64",
+																	"physicalType": "bigint"
+																},
+																"sink": {
+																	"name": "DELAYEDPRICETIME",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "QuoteID",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "QUOTEID",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "extendedChangePercent",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "EXTENDEDCHANGEPERCENT",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 4,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "extendedPriceTime",
+																	"type": "Int64",
+																	"physicalType": "bigint"
+																},
+																"sink": {
+																	"name": "EXTENDEDPRICETIME",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "previousClose",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "PREVIOUSCLOSE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 4,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "previousVolume",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "PREVIOUSVOLUME",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 4,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "change",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "CHANGE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 4,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "changePercent",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 4,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "CHANGEPERCENT",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 4,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "volume",
+																	"type": "Int64",
+																	"physicalType": "bigint"
+																},
+																"sink": {
+																	"name": "VOLUME",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "iexMarketPercent",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "IEXMARKETPERCENT",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 4,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "iexVolume",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "IEXVOLUME",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "avgTotalVolume",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "AVGTOTALVOLUME",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "iexBidPrice",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "IEXBIDPRICE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "iexBidSize",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "IEXBIDSIZE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "iexAskPrice",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "IEXASKPRICE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "iexAskSize",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "IEXASKSIZE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "marketCap",
+																	"type": "Int64",
+																	"physicalType": "bigint"
+																},
+																"sink": {
+																	"name": "MARKETCAP",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "peRatio",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "PERATIO",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "week52High",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "WEEK52HIGH",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "week52Low",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "WEEK52LOW",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "extendedChange",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "EXTENDEDCHANGE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "extendedPrice",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "EXTENDEDPRICE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "lastTradeTime",
+																	"type": "Int64",
+																	"physicalType": "bigint"
+																},
+																"sink": {
+																	"name": "LASTTRADETIME",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "delayedPrice",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "DELAYEDPRICE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "symbol",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "SYMBOL",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "companyName",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "COMPANYNAME",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "primaryExchange",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "PRIMARYEXCHANGE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "calculationPrice",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "CALCULATIONPRICE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "openPrice",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "OPENPRICE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "openTime",
+																	"type": "Int64",
+																	"physicalType": "bigint"
+																},
+																"sink": {
+																	"name": "OPENTIME",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "closePrice",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "CLOSEPRICE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "closeTime",
+																	"type": "Int64",
+																	"physicalType": "bigint"
+																},
+																"sink": {
+																	"name": "CLOSETIME",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "ytdChange",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 4,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "YTDCHANGE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "high",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "HIGH",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "latestPrice",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "LATESTPRICE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "latestSource",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "LATESTSOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "latestTime",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "LATESTTIME",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "latestUpdate",
+																	"type": "Int64",
+																	"physicalType": "bigint"
+																},
+																"sink": {
+																	"name": "LATESTUPDATE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "latestVolume",
+																	"type": "Int64",
+																	"physicalType": "bigint"
+																},
+																"sink": {
+																	"name": "LATESTVOLUME",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "iexRealtimePrice",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "IEXREALTIMEPRICE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "iexRealtimeSize",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "IEXREALTIMESIZE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "iexLastUpdated",
+																	"type": "Int64",
+																	"physicalType": "bigint"
+																},
+																"sink": {
+																	"name": "IEXLASTUPDATED",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "low",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "LOW",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "PullTimeUtc",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																},
+																"sink": {
+																	"name": "PULLTIMEUTC",
+																	"type": "DateTime",
+																	"physicalType": "date"
+																}
+															},
+															{
+																"source": {
+																	"name": "closeSource",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "CLOSESOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "highTime",
+																	"type": "Int64",
+																	"physicalType": "bigint"
+																},
+																"sink": {
+																	"name": "HIGHTIME",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "highSource",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "HIGHSOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "lowTime",
+																	"type": "Int64",
+																	"physicalType": "bigint"
+																},
+																"sink": {
+																	"name": "LOWTIME",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "lowSource",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																},
+																"sink": {
+																	"name": "LOWSOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "oddLotDelayedPrice",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "ODDLOTDELAYEDPRICE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "oddLotDelayedPriceTime",
+																	"type": "Int64",
+																	"physicalType": "bigint"
+																},
+																"sink": {
+																	"name": "ODDLOTDELAYEDPRICETIME",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "iexOpen",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "IEXOPEN",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "iexOpenTime",
+																	"type": "Int64",
+																	"physicalType": "bigint"
+																},
+																"sink": {
+																	"name": "IEXOPENTIME",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "iexClose",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																},
+																"sink": {
+																	"name": "IEXCLOSE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 18
+																}
+															},
+															{
+																"source": {
+																	"name": "iexCloseTime",
+																	"type": "Int64",
+																	"physicalType": "bigint"
+																},
+																"sink": {
+																	"name": "IEXCLOSETIME",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "isUSMarketOpen",
+																	"type": "Boolean",
+																	"physicalType": "bit"
+																},
+																"sink": {
+																	"name": "ISUSMARKETOPEN",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_RECORD_SOURCE"
+																},
+																"sink": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_LOAD_DATE"
+																},
+																"sink": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_SqlServerTable",
+														"type": "DatasetReference",
+														"parameters": {
+															"tableName": {
+																"value": "@item()",
+																"type": "Expression"
+															},
+															"schema": {
+																"value": "@pipeline().parameters.srcSchema",
+																"type": "Expression"
+															},
+															"serverName": {
+																"value": "@pipeline().parameters.srcServerName",
+																"type": "Expression"
+															},
+															"dbName": {
+																"value": "@pipeline().parameters.srcDb",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',item())",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.tgtSchema",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Quote Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "Quote - To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','Quote - To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('Quote - To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('Quote - To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "SymbolToIndustry",
+										"activities": [
+											{
+												"name": "SymbolToIndustry - To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "SqlServerSource",
+														"queryTimeout": "02:00:00",
+														"partitionOption": "None"
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.tgtSchema,'.',pipeline().parameters.pfxLOAD,'_',item())}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "SymbolToIndustryId",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "SYMBOLTOINDUSTRYID",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "PowerSymbolId",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "POWERSYMBOLID",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "IndustryId",
+																	"type": "Int32",
+																	"physicalType": "int"
+																},
+																"sink": {
+																	"name": "INDUSTRYID",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_SqlServerTable",
+														"type": "DatasetReference",
+														"parameters": {
+															"tableName": {
+																"value": "@item()",
+																"type": "Expression"
+															},
+															"schema": {
+																"value": "@pipeline().parameters.srcSchema",
+																"type": "Expression"
+															},
+															"serverName": {
+																"value": "@pipeline().parameters.srcServerName",
+																"type": "Expression"
+															},
+															"dbName": {
+																"value": "@pipeline().parameters.srcDb",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',item())",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.tgtSchema",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "SymbolToIndustry Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "SymbolToIndustry - To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','SymbolToIndustry - To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('SymbolToIndustry - To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('SymbolToIndustry - To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "PrimaryDim Filter",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "Load ForEach",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@variables('tableList')",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@or(equals(item(),'PowerSymbols'),or(equals(item(),'Market'),equals(item(),'Industry')))",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "PrimaryDim ForEach",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "PrimaryDim Filter",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('PrimaryDim Filter').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "PrimaryDim Stored procedure",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": {
+									"value": "@if(equals(item(),'PowerSymbols'),'[Corporate].[UPSERT_DIM_CORP_POWERSYMBOLS]',if(equals(item(),'Market'),'[Corporate].[UPSERT_DIM_CORP_MARKET]',if(equals(item(),'Industry'),'[Corporate].[UPSERT_DIM_CORP_INDUSTRY]','')))",
+									"type": "Expression"
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_power_d365_bi_01",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "PrimaryDim Stored Proc Failure - Notify Teams Channel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "PrimaryDim Stored procedure",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','PrimaryDim Stored procedure')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@replace(activity('PrimaryDim Stored procedure').error.Message,'\"','')",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('PrimaryDim Stored procedure').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "SecondaryDim Filter",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "PrimaryDim ForEach",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@variables('tableList')",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@equals(item(),'Company')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "SecondaryDim ForEach",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "SecondaryDim Filter",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('SecondaryDim Filter').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "SecondaryDim Stored procedure",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": {
+									"value": "@if(equals(item(),'Company'),'[Corporate].[UPSERT_DIM_CORP_COMPANY]','')",
+									"type": "Expression"
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_power_d365_bi_01",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "SecondaryDim Stored Proc Failure - Notify Teams Channel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "SecondaryDim Stored procedure",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','SecondaryDim Stored procedure')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@replace(activity('SecondaryDim Stored procedure').error.Message,'\"','')",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('SecondaryDim Stored procedure').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Stage Filter",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "SecondaryDim ForEach",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@variables('tableList')",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@or(equals(item(),'PowerSymbols'),equals(item(),'MarketHistory'))",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Stage ForEach",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Stage Filter",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Stage Filter').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Stage Stored procedure",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": {
+									"value": "@if(equals(item(),'MarketHistory'),'[Corporate].[INSERT_STAGE_CORP_MARKETHISTORY]','[Corporate].[INSERT_STAGE_CORP_POWERSYMBOLS]')",
+									"type": "Expression"
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_power_d365_bi_01",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Stage Stored Proc Failure - Notify Teams Channel_copy1",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Stage Stored procedure",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','Stage Stored procedure')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@replace(activity('Stage Stored procedure').error.Message,'\"','')",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('Stage Stored procedure').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Fact Filter",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "Stage ForEach",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@variables('tableList')",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@or(equals(item(),'Chart'),or(equals(item(),'MarketHistory'),or(equals(item(),'News'),or(equals(item(),'Quote'),equals(item(),'SymbolToIndustry')))))",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Fact ForEach",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Fact Filter",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Fact Filter').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Fact Stored procedure",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": {
+									"value": "@if(equals(item(),'MarketHistory'),'[Corporate].[UPSERT_FACT_CORP_MARKETHISTORY]',if(equals(item(),'Chart'),'[Corporate].[UPSERT_FACT_CORP_CHART]',if(equals(item(),'News'),'[Corporate].[UPSERT_FACT_CORP_NEWS]',if(equals(item(),'Quote'),'[Corporate].[UPSERT_FACT_CORP_QUOTE]',if(equals(item(),'SymbolToIndustry'),'[Corporate].[UPSERT_FACT_CORP_SYMBOLTOINDUSTRY]','')))))",
+									"type": "Expression"
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_power_d365_bi_01",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Fact Stored Proc Failure - Notify Teams Channel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Fact Stored procedure",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','Fact Stored procedure')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@replace(activity('Fact Stored procedure').error.Message,'\"','')",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('Fact Stored procedure').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "PowerSymbols View Procedure Failure - Notify Teams",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "PowerSymbols View Stored procedure",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "SendNotificationToTeamsChannel",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"pipelineRunId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"activityName": {
+							"value": "@concat(pipeline().Pipeline,'-','PowerSymbols View Stored procedure')",
+							"type": "Expression"
+						},
+						"activityMessage": {
+							"value": "@activity('PowerSymbols View Stored procedure').error.Message",
+							"type": "Expression"
+						},
+						"activityDuration": {
+							"value": "@activity('PowerSymbols View Stored procedure').Duration",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Get Items Failure - Notify Teams Channel",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Set tableList variable",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "SendNotificationToTeamsChannel",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"pipelineRunId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"activityName": {
+							"value": "@concat(pipeline().Pipeline,'-','Set tableList variable')",
+							"type": "Expression"
+						},
+						"activityMessage": {
+							"value": "@activity('Set tableList variable').error.Message",
+							"type": "Expression"
+						},
+						"activityDuration": {
+							"value": "@activity('Set tableList variable').Duration",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "PowerSymbols View Stored procedure",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Fact ForEach",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[Corporate].[UPDATE_VIEW_CORP_POWERSYMBOLS]"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_power_d365_bi_01",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"srcSchema": {
+				"type": "string",
+				"defaultValue": "dbo"
+			},
+			"srcDb": {
+				"type": "string",
+				"defaultValue": "StockInfo"
+			},
+			"tgtSchema": {
+				"type": "string",
+				"defaultValue": "Corporate"
+			},
+			"tgtDb": {
+				"type": "string",
+				"defaultValue": "powerd365biuat"
+			},
+			"pfxLOAD": {
+				"type": "string",
+				"defaultValue": "LOAD_CORP"
+			},
+			"pfxSTAGE": {
+				"type": "string",
+				"defaultValue": "STAGE_CORP"
+			},
+			"pfxFACT": {
+				"type": "string",
+				"defaultValue": "FACT_CORP"
+			},
+			"pfxDIM": {
+				"type": "string",
+				"defaultValue": "DIM_CORP"
+			},
+			"pfxVIEW": {
+				"type": "string",
+				"defaultValue": "VIEW_CORP"
+			},
+			"srcServerName": {
+				"type": "string",
+				"defaultValue": "appsdev-sql-dev"
+			}
+		},
+		"variables": {
+			"tableList": {
+				"type": "Array"
+			}
+		},
+		"folder": {
+			"name": "PowerBI"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-04-04T15:44:40Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

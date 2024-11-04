@@ -1,0 +1,19 @@
+{
+	"name": "ls_snowflake_warehouse",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "Snowflake",
+		"typeProperties": {
+			"authenticationType": "Basic",
+			"connectionString": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "sec-snowflakeWarehouse-prod-connectionstring"
+			}
+		}
+	}
+}

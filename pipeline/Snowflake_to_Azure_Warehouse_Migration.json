@@ -1,0 +1,286 @@
+{
+	"name": "Snowflake_to_Azure_Warehouse_Migration",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Table Array",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@variables('tableArray')",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Execute Pipeline1",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "Snowflake_to_Azure_Schema_Migration",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"jsonObject": {
+										"value": "@item()",
+										"type": "Expression"
+									},
+									"srcDbName": {
+										"value": "@pipeline().parameters.srcDbName",
+										"type": "Expression"
+									},
+									"srcWarehouseName": {
+										"value": "@pipeline().parameters.srcWarehouseName",
+										"type": "Expression"
+									},
+									"srcRoleName": {
+										"value": "@pipeline().parameters.srcRoleName",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Table Array",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "tableArray",
+					"value": [
+						{
+							"tgtSchema": "Axiom",
+							"srcSchema": "LOAD",
+							"tblNamePrefix": "LOAD_AXIOM",
+							"tables": [
+								"ACHIEVED_MULTIPLIER",
+								"BACKLOG_BTE",
+								"BACKLOG_BTE_DIVISIONS",
+								"FINANCE",
+								"IFO",
+								"PAYROLL_MULTIPLIER",
+								"TREND_VALUE",
+								"UTILIZATION_DIVISIONS"
+							]
+						},
+						{
+							"tgtSchema": "Axiom",
+							"srcSchema": "ODS",
+							"tblNamePrefix": "ODS_AXIOM",
+							"tables": [
+								"ACHIEVED_MULTIPLIER",
+								"BACKLOG_BTE",
+								"BACKLOG_BTE_DIVISIONS",
+								"FINANCE",
+								"PAYROLL_MULTIPLIER",
+								"TREND_VALUE",
+								"UTILIZATION_DIVISIONS"
+							]
+						},
+						{
+							"tgtSchema": "Axiom",
+							"srcSchema": "STAGE",
+							"tblNamePrefix": "STAGE_AXIOM",
+							"tables": [
+								"ACHIEVED_MULTIPLIER",
+								"BACKLOG_BTE",
+								"BACKLOG_BTE_DIVISIONS",
+								"FINANCE",
+								"IFO",
+								"PAYROLL_MULTIPLIER",
+								"TREND_VALUE",
+								"UTILIZATION_DIVISIONS"
+							]
+						},
+						{
+							"tgtSchema": "Axiom",
+							"srcSchema": "EDW",
+							"tblNamePrefix": "FACT_AXIOM",
+							"tables": [
+								"ACHIEVED_MULTIPLIER",
+								"BACKLOG_BTE",
+								"BACKLOG_BTE_DIVISIONS",
+								"FINANCE",
+								"IFO",
+								"PAYROLL_MULTIPLIER",
+								"TREND_VALUE",
+								"UTILIZATION_DIVISIONS"
+							]
+						},
+						{
+							"tgtSchema": "Infrastructure",
+							"srcSchema": "LOAD",
+							"tblNamePrefix": "LOAD_INFRA_DA",
+							"tables": [
+								"BANDWIDTH_STATS",
+								"MERGED_STATS",
+								"STATS"
+							]
+						},
+						{
+							"tgtSchema": "Infrastructure",
+							"srcSchema": "ODS",
+							"tblNamePrefix": "ODS_INFRA_DA",
+							"tables": [
+								"BANDWIDTH_STATS",
+								"MERGED_STATS",
+								"STATS"
+							]
+						},
+						{
+							"tgtSchema": "Infrastructure",
+							"srcSchema": "STAGE",
+							"tblNamePrefix": "STAGE_INFRA_DA",
+							"tables": [
+								"BANDWIDTH_STATS",
+								"MERGED_STATS",
+								"STATS"
+							]
+						},
+						{
+							"tgtSchema": "Infrastructure",
+							"srcSchema": "EDW",
+							"tblNamePrefix": "FACT_INFRA_DA",
+							"tables": [
+								"BANDWIDTH_STATS",
+								"MERGED_STATS",
+								"STATS"
+							]
+						},
+						{
+							"tgtSchema": "MSLicensing",
+							"srcSchema": "LOAD",
+							"tblNamePrefix": "LOAD",
+							"tables": [
+								"LICENSE_INFO",
+								"LICENSED_USERS",
+								"LICENSED_USERS_WITH_ID"
+							]
+						},
+						{
+							"tgtSchema": "MSLicensing",
+							"srcSchema": "ODS",
+							"tblNamePrefix": "ODS",
+							"tables": [
+								"LICENSE_INFO",
+								"LICENSED_USERS",
+								"LICENSED_USERS_WITH_ID"
+							]
+						},
+						{
+							"tgtSchema": "MSLicensing",
+							"srcSchema": "STAGE",
+							"tblNamePrefix": "STAGE",
+							"tables": [
+								"LICENSE_INFO",
+								"LICENSED_USERS",
+								"LICENSED_USERS_WITH_ID"
+							]
+						},
+						{
+							"tgtSchema": "MSLicensing",
+							"srcSchema": "EDW",
+							"tblNamePrefix": "FACT_MS",
+							"tables": [
+								"LICENSE_INFO",
+								"LICENSED_USERS",
+								"LICENSED_USERS_WITH_ID"
+							]
+						},
+						{
+							"tgtSchema": "Corporate",
+							"srcSchema": "LOAD",
+							"tblNamePrefix": "LOAD_CORP",
+							"tables": [
+								"COMPANY",
+								"CHART",
+								"INDUSTRY",
+								"MARKET",
+								"MARKETHISTORY",
+								"NEWS",
+								"POWERSYMBOLS",
+								"QUOTE",
+								"SYMBOLTOINDUSTRY"
+							]
+						},
+						{
+							"tgtSchema": "Corporate",
+							"srcSchema": "EDW",
+							"tblNamePrefix": "DIM_CORP",
+							"tables": [
+								"COMPANY",
+								"INDUSTRY",
+								"MARKET"
+							]
+						},
+						{
+							"tgtSchema": "Corporate",
+							"srcSchema": "STAGE",
+							"tblNamePrefix": "STAGE_CORP",
+							"tables": [
+								"MARKETHISTORY",
+								"POWERSYMBOLS"
+							]
+						},
+						{
+							"tgtSchema": "Corporate",
+							"srcSchema": "EDW",
+							"tblNamePrefix": "FACT_CORP",
+							"tables": [
+								"CHART",
+								"MARKETHISTORY",
+								"NEWS",
+								"QUOTE",
+								"SYMBOLTOINDUSTRY"
+							]
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"srcFileName": {
+				"type": "string",
+				"defaultValue": "data_0_0_0.snappy.parquet"
+			},
+			"srcDbName": {
+				"type": "string",
+				"defaultValue": "POWER_PRODUCTION_DATABASE"
+			},
+			"srcWarehouseName": {
+				"type": "string",
+				"defaultValue": "POWER_PRODUCTION_WAREHOUSE"
+			},
+			"srcRoleName": {
+				"type": "string",
+				"defaultValue": "WHERESCAPE_PROD_ROLE"
+			}
+		},
+		"variables": {
+			"tableArray": {
+				"type": "Array"
+			}
+		},
+		"folder": {
+			"name": "Util/Snowflake to BYOD"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-04-04T15:44:40Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

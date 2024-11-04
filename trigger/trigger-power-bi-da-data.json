@@ -1,0 +1,41 @@
+{
+	"name": "trigger-power-bi-da-data",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PowerBiDADataToAzureSQL",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"schemaName": "Infrastructure",
+					"pfxLOAD": "LOAD",
+					"sfxBandwidthStats": "INFRA_DA_BANDWIDTH_STATS",
+					"sfxMergedStats": "INFRA_DA_MERGED_STATS",
+					"sfxStats": "INFRA_DA_STATS",
+					"pfxODS": "ODS",
+					"pfxSTAGE": "STAGE",
+					"pfxFACT": "FACT",
+					"fileStoreLocation": "Azure_Data_Factory/DA_Data",
+					"source_Directory": "New",
+					"destination_Directory": "Archive",
+					"fileSystemName": "power-bi-blob",
+					"fileShareName": "\\\\cdcfs1",
+					"filename": "@triggerBody().fileName"
+				}
+			}
+		],
+		"type": "BlobEventsTrigger",
+		"typeProperties": {
+			"blobPathBeginsWith": "/power-bi-blob/blobs/Azure_Data_Factory/DA_Data/",
+			"blobPathEndsWith": ".csv",
+			"ignoreEmptyBlobs": true,
+			"scope": "/subscriptions/d27e79e1-9d17-4dea-8f77-fbc284f2ce04/resourceGroups/dynamics-bi-integrations-dev/providers/Microsoft.Storage/storageAccounts/aec360powerdev",
+			"events": [
+				"Microsoft.Storage.BlobCreated"
+			]
+		}
+	}
+}

@@ -1,0 +1,20 @@
+{
+	"name": "ds_UAT_AzureSQLStringmap",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_powerd365_biuat",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Dataverse"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "crm_stringmap"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

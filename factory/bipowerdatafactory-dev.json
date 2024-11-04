@@ -1,0 +1,21 @@
+{
+	"name": "bipowerdatafactory-dev",
+	"properties": {
+		"globalParameters": {
+			"gl_testFileStoreLocation": {
+				"type": "string",
+				"value": "Azure_Data_Factory/Test"
+			},
+			"gl_fileStoreLocation": {
+				"type": "string",
+				"value": "Azure_Data_Factory"
+			}
+		}
+	},
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "f821bb16-4e16-49ec-ab3e-222d2bf5625f",
+		"tenantId": "f07fff05-bf71-4ed8-b274-173ea27956dc"
+	}
+}

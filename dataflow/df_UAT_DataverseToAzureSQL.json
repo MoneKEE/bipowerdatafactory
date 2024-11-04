@@ -1,0 +1,36 @@
+{
+	"name": "df_UAT_DataverseToAzureSQL",
+	"properties": {
+		"description": "Writes Dataverse data in Azure Data Lake Storage Gen2 to Azure SQL Database.",
+		"folder": {
+			"name": "Dataverse"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "ls_aec360powerprod_adls",
+						"type": "LinkedServiceReference"
+					},
+					"name": "ADLS"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_UAT_AzureSQL",
+						"type": "DatasetReference"
+					},
+					"name": "SQL"
+				}
+			],
+			"transformations": [
+				{
+					"name": "AlterRow1"
+				}
+			],
+			"script": "parameters{\n\tContainerName as string (\"Dataverse Container Name\"),\n\tTableName as string\n}\nsource(allowSchemaDrift: true,\n\tvalidateSchema: true,\n\tinferDriftedColumnTypes: true,\n\tignoreNoFilesFound: false,\n\tentity: ($TableName),\n\tformat: 'cdm',\n\tmanifestType: 'model',\n\tfolderPath: '',\n\tfileSystem: 'dataverse-poweruatcrm-org6c6e4a92',\n\tdateFormats: ['MM/dd/yyyy','yyyy-MM-dd'],\n\ttimestampFormats: ['MM/dd/yyyy hh:mm:ss a','yyyy-MM-dd\\'T\\'HH:mm:ss'],\n\tpreferredIntegralType: 'long',\n\tpreferredFractionalType: 'float') ~> ADLS\nADLS alterRow(insertIf(true()),\n\tupdateIf(true()),\n\tdeleteIf(true()),\n\tupsertIf(true())) ~> AlterRow1\nAlterRow1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\trecreate:true,\n\tformat: 'table',\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\terrorHandlingOption: 'stopOnFirstError') ~> SQL"
+		}
+	}
+}

@@ -1,0 +1,43 @@
+{
+	"name": "ds_SnowflakeTable",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_snowflake_warehouse",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"tableName": {
+				"type": "string"
+			},
+			"dbName": {
+				"type": "string"
+			},
+			"schemaName": {
+				"type": "string"
+			},
+			"warehouseName": {
+				"type": "string"
+			},
+			"roleName": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "SQL"
+		},
+		"annotations": [],
+		"type": "SnowflakeTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().schemaName",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().tableName",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

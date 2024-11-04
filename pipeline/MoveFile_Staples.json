@@ -1,0 +1,185 @@
+{
+	"name": "MoveFile_Staples",
+	"properties": {
+		"description": "Move files from one folder to another folder",
+		"activities": [
+			{
+				"name": "CopyAFile",
+				"description": "Copy a file from the source store to the destination store.",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "FileServerReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						},
+						"recursive": false
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "FileServerWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".txt"
+						}
+					},
+					"enableStaging": false,
+					"dataIntegrationUnits": 0,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_DelimitedDataSource_File_FS",
+						"type": "DatasetReference",
+						"parameters": {
+							"Directory": {
+								"value": "@concat(pipeline().parameters.SourceStore_Location,'/',pipeline().parameters.SourceStore_Directory)",
+								"type": "Expression"
+							},
+							"fileName": {
+								"value": "@pipeline().parameters.fileName",
+								"type": "Expression"
+							},
+							"srcHostName": {
+								"value": "@pipeline().parameters.fileSystemName",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_DelimitedDataDestination_Staples_FS",
+						"type": "DatasetReference",
+						"parameters": {
+							"FolderPath": {
+								"value": "@pipeline().parameters.DestinationStore_Location",
+								"type": "Expression"
+							},
+							"Directory": {
+								"value": "@pipeline().parameters.DestinationStore_Directory",
+								"type": "Expression"
+							},
+							"filename": {
+								"value": "@pipeline().parameters.fileName",
+								"type": "Expression"
+							},
+							"filenameAppend": {
+								"value": "@if(equals(pipeline().parameters.fileName,'Staples Canada Report.csv'),pipeline().parameters.process_ids[0],pipeline().parameters.process_ids[1])",
+								"type": "Expression"
+							},
+							"srcHostName": {
+								"value": "@pipeline().parameters.fileSystemName",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "DeleteAFile",
+				"description": "Delete a file from the source store",
+				"type": "Delete",
+				"dependsOn": [
+					{
+						"activity": "CopyAFile",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_DelimitedDataSource_File_FS",
+						"type": "DatasetReference",
+						"parameters": {
+							"Directory": {
+								"value": "@concat(pipeline().parameters.SourceStore_Location,'/',pipeline().parameters.SourceStore_Directory)",
+								"type": "Expression"
+							},
+							"fileName": {
+								"value": "@pipeline().parameters.fileName",
+								"type": "Expression"
+							},
+							"srcHostName": {
+								"value": "@pipeline().parameters.fileSystemName",
+								"type": "Expression"
+							}
+						}
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "FileServerReadSettings",
+						"recursive": true
+					}
+				}
+			}
+		],
+		"parameters": {
+			"SourceStore_Location": {
+				"type": "String",
+				"defaultValue": "Azure_Data_Factory/Supply_Equipment_Orders"
+			},
+			"SourceStore_Directory": {
+				"type": "String",
+				"defaultValue": "New"
+			},
+			"DestinationStore_Location": {
+				"type": "String",
+				"defaultValue": "Azure_Data_Factory/Supply_Equipment_Orders"
+			},
+			"DestinationStore_Directory": {
+				"type": "String",
+				"defaultValue": "Archive"
+			},
+			"fileSystemName": {
+				"type": "string",
+				"defaultValue": "\\\\cdcfs1"
+			},
+			"process_ids": {
+				"type": "array"
+			},
+			"fileName": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Util/Move Files"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-04-04T15:44:39Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

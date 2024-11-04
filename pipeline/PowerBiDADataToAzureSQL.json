@@ -1,0 +1,1342 @@
+{
+	"name": "PowerBiDADataToAzureSQL",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get Source Folder Items",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_DelimitedDataSource_Folder_Blob",
+						"type": "DatasetReference",
+						"parameters": {
+							"fileSystem": {
+								"value": "@pipeline().parameters.fileSystemName",
+								"type": "Expression"
+							},
+							"folderPath": {
+								"value": "@pipeline().parameters.fileStoreLocation",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "For Each Source Folder Item",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Source Folder Items",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@if(endswith(concat('o',pipeline().parameters.filename),'csv'),json(concat('[{\"name\":\"',pipeline().parameters.filename,'\"}]')),activity('Get Source Folder Items').output.childItems)",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "SwitchDaStats",
+							"type": "Switch",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"on": {
+									"value": "@split(item().name,'.')[0]",
+									"type": "Expression"
+								},
+								"cases": [
+									{
+										"value": "daStats",
+										"activities": [
+											{
+												"name": "DA Stats - ADLS To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"additionalColumns": [
+															{
+																"name": "DSS_RECORD_SOURCE",
+																"value": {
+																	"value": "@concat(pipeline().parameters.fileStoreLocation,'/',pipeline().parameters.source_Directory,'/',item().name)",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "DSS_LOAD_DATE",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.schemaName,'.',pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxStats)}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "DateTime",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "DATETIME",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															},
+															{
+																"source": {
+																	"name": "Server",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "SERVER",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Location",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "LOCATION",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "ActiveConnections",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "ACTIVECONNECTIONS",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "TotalBytesIn",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "TOTALBYTESIN",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "TotalBytesOut",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "TOTALBYTESOUT",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_DelimitedDataSource_File_Blob",
+														"type": "DatasetReference",
+														"parameters": {
+															"fileSystem": {
+																"value": "@pipeline().parameters.fileSystemName",
+																"type": "Expression"
+															},
+															"fileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"folderPath": {
+																"value": "@pipeline().parameters.fileStoreLocation",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxStats)",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.schemaName",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "DA Stats Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "DA Stats - ADLS To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','DA Stats - ADLS To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('DA Stats - ADLS To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('DA Stats - ADLS To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "daMergedStats",
+										"activities": [
+											{
+												"name": "DA Merged Stats - ADLS To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"additionalColumns": [
+															{
+																"name": "DSS_RECORD_SOURCE",
+																"value": {
+																	"value": "@concat(pipeline().parameters.fileStoreLocation,'/',pipeline().parameters.source_Directory,'/',item().name)",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "DSS_LOAD_DATE",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.schemaName,'.',pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxMergedStats)}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "DateTime",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "DATETIME",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															},
+															{
+																"source": {
+																	"name": "Location",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "LOCATION",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "ServerName",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "SERVERNAME",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "ActiveConnections",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "ACTIVECONNECTIONS",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 0,
+																	"precision": 38
+																}
+															},
+															{
+																"source": {
+																	"name": "Mbps_In",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "MBPS_IN",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 28,
+																	"precision": 33
+																}
+															},
+															{
+																"source": {
+																	"name": "Mbps_Out",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "MBPS_OUT",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 28,
+																	"precision": 33
+																}
+															},
+															{
+																"source": {
+																	"name": "Total_Mbps",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "TOTAL_MBPS",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 28,
+																	"precision": 33
+																}
+															},
+															{
+																"source": {
+																	"name": "GBph_In",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "GBPH_IN",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 28,
+																	"precision": 33
+																}
+															},
+															{
+																"source": {
+																	"name": "GBph_Out",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "GBPH_OUT",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 28,
+																	"precision": 33
+																}
+															},
+															{
+																"source": {
+																	"name": "Total_GBph",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "TOTAL_GBPH",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 28,
+																	"precision": 33
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_DelimitedDataSource_File_Blob",
+														"type": "DatasetReference",
+														"parameters": {
+															"fileSystem": {
+																"value": "@pipeline().parameters.fileSystemName",
+																"type": "Expression"
+															},
+															"fileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"folderPath": {
+																"value": "@pipeline().parameters.fileStoreLocation",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxMergedStats)",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.schemaName",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "DA Merged Stats Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "DA Merged Stats - ADLS To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','DA Merged Stats - ADLS To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('DA Merged Stats - ADLS To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('DA Merged Stats - ADLS To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "daBandwidthStats",
+										"activities": [
+											{
+												"name": "DA Bandwidth Stats - ADLS To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.schemaName,'.',pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxBandwidthStats)}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "Site",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "SITE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "StartTime",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "STARTTIME",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															},
+															{
+																"source": {
+																	"name": "EndTime",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "ENDTIME",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															},
+															{
+																"source": {
+																	"name": "GBph_In",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "GBPH_IN",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 28,
+																	"precision": 33
+																}
+															},
+															{
+																"source": {
+																	"name": "GBph_Out",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "GBPH_OUT",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 28,
+																	"precision": 33
+																}
+															},
+															{
+																"source": {
+																	"name": "Total_GBph",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "TOTAL_GBPH",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 28,
+																	"precision": 33
+																}
+															},
+															{
+																"source": {
+																	"name": "Mbps_In",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "MBPS_IN",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 28,
+																	"precision": 33
+																}
+															},
+															{
+																"source": {
+																	"name": "Mbps_Out",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "MBPS_OUT",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 28,
+																	"precision": 33
+																}
+															},
+															{
+																"source": {
+																	"name": "Total_Mbps",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "TOTAL_MBPS",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 28,
+																	"precision": 33
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_DelimitedDataSource_File_Blob",
+														"type": "DatasetReference",
+														"parameters": {
+															"fileSystem": {
+																"value": "@pipeline().parameters.fileSystemName",
+																"type": "Expression"
+															},
+															"fileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"folderPath": {
+																"value": "@pipeline().parameters.fileStoreLocation",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxBandwidthStats)",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.schemaName",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "DA Bandwidth Stats Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "DA Bandwidth Stats - ADLS To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','DA Bandwidth Stats - ADLS To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('DA Bandwidth Stats - ADLS To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('DA Bandwidth Stats - ADLS To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									}
+								]
+							}
+						},
+						{
+							"name": "SwitchDaStats Failure - Notify Teams Channel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "SwitchDaStats",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','SwitchDaSTats')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@activity('SwitchDaStats').error.Message",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('SwitchDaStats').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Load to ODS Tables",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "SwitchDaStats",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": {
+									"value": "@if(equals(split(item().name,'.')[0],'daStats'),'[Infrastructure].[UPSERT_ODS_INFRA_DA_STATS]',if(equals(split(item().name,'.')[0],'daMergedStats'),'[Infrastructure].[UPSERT_ODS_INFRA_DA_MERGED_STATS]',if(equals(split(item().name,'.')[0],'daBandwidthStats'),'[Infrastructure].[UPSERT_ODS_INFRA_DA_BANDWIDTH_STATS]','')))",
+									"type": "Expression"
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_power_d365_bi_01",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "ODS to Stage Tables",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Load to ODS Tables",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": {
+									"value": "@if(equals(split(item().name,'.')[0],'daStats'),'[Infrastructure].[INSERT_STAGE_INFRA_DA_STATS]',if(equals(split(item().name,'.')[0],'daMergedStats'),'[Infrastructure].[INSERT_STAGE_INFRA_DA_MERGED_STATS]',if(equals(split(item().name,'.')[0],'daBandwidthStats'),'[Infrastructure].[INSERT_STAGE_INFRA_DA_BANDWIDTH_STATS]','')))",
+									"type": "Expression"
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_power_d365_bi_01",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Stage to Fact Tables",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "ODS to Stage Tables",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": {
+									"value": "@if(equals(split(item().name,'.')[0],'daStats'),'[Infrastructure].[UPSERT_FACT_INFRA_DA_STATS]',if(equals(split(item().name,'.')[0],'daMergedStats'),'[Infrastructure].[UPSERT_FACT_INFRA_DA_MERGED_STATS]',if(equals(split(item().name,'.')[0],'daBandwidthStats'),'[Infrastructure].[UPSERT_FACT_INFRA_DA_BANDWIDTH_STATS]','')))",
+									"type": "Expression"
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_power_d365_bi_01",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Load to ODS Failure - Notify Teams Channel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Load to ODS Tables",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','Load To ODS Tables')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@replace(activity('Load to ODS Tables').error.Message,'\"','')",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('Load to ODS Tables').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "ODS to Stage Failure - Notify Teams Channel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "ODS to Stage Tables",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','ODS to Stage Tables')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@replace(activity('ODS to Stage Tables').error.Message,'\"','')",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('ODS to Stage Tables').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Stage to Fact Failure - Notify Teams Channel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Stage to Fact Tables",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','Stage To Fact Tables')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@replace(activity('Stage to Fact Tables').error.Message,'\"','')",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('Stage to Fact Tables').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Move to Archive",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "SwitchDaStats",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "MoveFile",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"SourceStore_Location": {
+										"value": "@pipeline().parameters.fileStoreLocation",
+										"type": "Expression"
+									},
+									"SourceStore_Directory": {
+										"value": "@pipeline().parameters.source_Directory",
+										"type": "Expression"
+									},
+									"DestinationStore_Location": {
+										"value": "@pipeline().parameters.fileStoreLocation",
+										"type": "Expression"
+									},
+									"DestinationStore_Directory": {
+										"value": "@pipeline().parameters.destination_Directory",
+										"type": "Expression"
+									},
+									"fileSystemName": {
+										"value": "@pipeline().parameters.fileShareName",
+										"type": "Expression"
+									},
+									"filename": {
+										"value": "@item().name",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Move to Archive Failure - Notify Teams Channel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Move to Archive",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','Move to Archive')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@replace(activity('Move to Archive').error.Message,'\\','\\\\')",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('Move to Archive').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Delete Blob",
+							"type": "Delete",
+							"dependsOn": [
+								{
+									"activity": "Move to Archive",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ds_DelimitedDataSource_File_Blob",
+									"type": "DatasetReference",
+									"parameters": {
+										"fileSystem": {
+											"value": "@pipeline().parameters.fileSystemName",
+											"type": "Expression"
+										},
+										"fileName": {
+											"value": "@item().name",
+											"type": "Expression"
+										},
+										"folderPath": {
+											"value": "@pipeline().parameters.fileStoreLocation",
+											"type": "Expression"
+										}
+									}
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Get Items Failure - Notify Teams Channel",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Get Source Folder Items",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "SendNotificationToTeamsChannel",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"pipelineRunId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"activityName": {
+							"value": "@concat(pipeline().Pipeline,'-','Get Source Folder Items')",
+							"type": "Expression"
+						},
+						"activityMessage": {
+							"value": "@activity('Get Source Folder Items').error.Message",
+							"type": "Expression"
+						},
+						"activityDuration": {
+							"value": "@activity('Get Source Folder Items').Duration",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"schemaName": {
+				"type": "string",
+				"defaultValue": "Infrastructure"
+			},
+			"pfxLOAD": {
+				"type": "string",
+				"defaultValue": "LOAD"
+			},
+			"sfxBandwidthStats": {
+				"type": "string",
+				"defaultValue": "INFRA_DA_BANDWIDTH_STATS"
+			},
+			"sfxMergedStats": {
+				"type": "string",
+				"defaultValue": "INFRA_DA_MERGED_STATS"
+			},
+			"sfxStats": {
+				"type": "string",
+				"defaultValue": "INFRA_DA_STATS"
+			},
+			"pfxODS": {
+				"type": "string",
+				"defaultValue": "ODS"
+			},
+			"pfxSTAGE": {
+				"type": "string",
+				"defaultValue": "STAGE"
+			},
+			"pfxFACT": {
+				"type": "string",
+				"defaultValue": "FACT"
+			},
+			"fileStoreLocation": {
+				"type": "string",
+				"defaultValue": "Azure_Data_Factory/DA_Data"
+			},
+			"source_Directory": {
+				"type": "string",
+				"defaultValue": "New"
+			},
+			"destination_Directory": {
+				"type": "string",
+				"defaultValue": "Archive"
+			},
+			"fileSystemName": {
+				"type": "string",
+				"defaultValue": "power-bi-blob"
+			},
+			"fileShareName": {
+				"type": "string",
+				"defaultValue": "\\\\cdcfs1"
+			},
+			"filename": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "PowerBI"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-04-04T15:44:40Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

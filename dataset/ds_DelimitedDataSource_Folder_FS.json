@@ -1,0 +1,44 @@
+{
+	"name": "ds_DelimitedDataSource_Folder_FS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_fileserver_host",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"srcHostName": {
+					"value": "@dataset().srcHostName",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"Directory": {
+				"type": "string"
+			},
+			"srcHostName": {
+				"type": "string",
+				"defaultValue": "\\\\cdcfs1"
+			}
+		},
+		"folder": {
+			"name": "Delimited"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "FileServerLocation",
+				"folderPath": {
+					"value": "@dataset().Directory",
+					"type": "Expression"
+				}
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

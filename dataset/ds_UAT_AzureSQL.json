@@ -1,0 +1,30 @@
+{
+	"name": "ds_UAT_AzureSQL",
+	"properties": {
+		"description": "The destination Azure SQL Table for the Dataverse data.",
+		"linkedServiceName": {
+			"referenceName": "ls_powerd365_biuat",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"SQLTableName": {
+				"type": "string",
+				"defaultValue": "\"SQL Table Name\""
+			}
+		},
+		"folder": {
+			"name": "Dataverse"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": {
+				"value": "@dataset().SQLTableName",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

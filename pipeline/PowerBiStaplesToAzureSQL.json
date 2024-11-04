@@ -1,0 +1,1480 @@
+{
+	"name": "PowerBiStaplesToAzureSQL",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get Source Folder Items",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_DelimitedDataSource_Folder_Blob",
+						"type": "DatasetReference",
+						"parameters": {
+							"fileSystem": {
+								"value": "@pipeline().parameters.fileSystemName",
+								"type": "Expression"
+							},
+							"folderPath": {
+								"value": "@pipeline().parameters.fileStoreLocation",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "For Each Source Folder Item",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Source Folder Items",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@if(endswith(concat('o',pipeline().parameters.filename),'csv'),json(concat('[{\"name\":\"',pipeline().parameters.filename,'\"}]')),activity('Get Source Folder Items').output.childItems)",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Switch1",
+							"type": "Switch",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"on": {
+									"value": "@split(item().name,'.')[0]",
+									"type": "Expression"
+								},
+								"cases": [
+									{
+										"value": "Staples Canada Report",
+										"activities": [
+											{
+												"name": "Canada Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "Canada - ADLS To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','Canada - ADLS To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('Canada - ADLS To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('Canada - ADLS To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											},
+											{
+												"name": "Canada - ADLS To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"additionalColumns": [
+															{
+																"name": "DSS_RECORD_SOURCE",
+																"value": {
+																	"value": "@concat(pipeline().parameters.fileStoreLocation,'/',pipeline().parameters.source_Directory,'/',item().name)",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "DSS_LOAD_DATE",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.schemaName,'.',pipeline().parameters.pfxStaplesCan,'_',pipeline().parameters.sfxLOAD)}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "Invoice Date",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Invoice_Date",
+																	"type": "DateTime",
+																	"physicalType": "date"
+																}
+															},
+															{
+																"source": {
+																	"name": "Invoice #",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Invoice_Number",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Order Date",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Order_Date",
+																	"type": "DateTime",
+																	"physicalType": "date"
+																}
+															},
+															{
+																"source": {
+																	"name": "Order #",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Order_Number",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "PO #",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "PO_Number",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Cost Center",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Cost_Center",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Parent",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Parent",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Parent Name",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Parent_Name",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Ship-to",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Ship_To",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Care of",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Care_of",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Product",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Product",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Product Description",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Product_Description",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Product Groups",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Product_Groups",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Product Departments",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Product_Departments",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Ordered by",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Ordered_by",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "UOM",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "UOM",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "C",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Contract_Indicator",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Email Address",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Email_Address",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Qty Ordered",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Qty_Ordered",
+																	"type": "Int32",
+																	"physicalType": "int"
+																}
+															},
+															{
+																"source": {
+																	"name": "Qty BO",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Qty_BO",
+																	"type": "Int32",
+																	"physicalType": "int"
+																}
+															},
+															{
+																"source": {
+																	"name": "Qty Shipped",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Qty_Shipped",
+																	"type": "Int32",
+																	"physicalType": "int"
+																}
+															},
+															{
+																"source": {
+																	"name": "Unit Price",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Unit_Price",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Sum of Sales",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "Sum_of_Sales",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "DateTime",
+																	"physicalType": "datetime"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_DelimitedDataSource_File_Blob",
+														"type": "DatasetReference",
+														"parameters": {
+															"fileSystem": {
+																"value": "@pipeline().parameters.fileSystemName",
+																"type": "Expression"
+															},
+															"fileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"folderPath": {
+																"value": "@pipeline().parameters.fileStoreLocation",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxStaplesCan,'_',pipeline().parameters.sfxLOAD)",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.schemaName",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											}
+										]
+									},
+									{
+										"value": "Staples US Report",
+										"activities": [
+											{
+												"name": "US - ADLS To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"additionalColumns": [
+															{
+																"name": "DSS_RECORD_SOURCE",
+																"value": {
+																	"value": "@concat(pipeline().parameters.fileStoreLocation,'/',pipeline().parameters.source_Directory,'/',item().name)",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "DSS_LOAD_DATE",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.schemaName,'.',pipeline().parameters.pfxStaplesUS,'_',pipeline().parameters.sfxLOAD)}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "BILLTONUMBER",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "BILL_TO_NUMBER",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "BILLTONAME",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "BILL_TO_NAME",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "SHIPTONUMBER",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "SHIP_TO_NUMBER",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "SHIPTOSTATE",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "SHIP_TO_STATE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "SHIPTOZIPCODE",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "SHIP_TO_ZIP_CODE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "LASTSHIPDATE",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "LAST_SHIP_DATE",
+																	"type": "DateTime",
+																	"physicalType": "date"
+																}
+															},
+															{
+																"source": {
+																	"name": "LINEITEMBUDGETCENTER",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "LINE_ITEM_BUDGET_CENTER",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "CUSTPOREL",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "CUST_PO_REL",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "CUSTPO",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "CUST_PO",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "ORDERCONTACT",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "ORDER_CONTACT",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "EMAIL",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "WORKER_EMAIL",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "ORDERCONTACTPHONE",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "ORDER_CONTACT_PHONE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "SHIPTOCONTACT",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "SHIP_TO_CONTACT",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "ORDERNUMBER",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "ORDER_NUMBER",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "ORDERDATE",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "ORDER_DATE",
+																	"type": "DateTime",
+																	"physicalType": "date"
+																}
+															},
+															{
+																"source": {
+																	"name": "SHIPPEDDATE",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "SHIPPED_DATE",
+																	"type": "DateTime",
+																	"physicalType": "date"
+																}
+															},
+															{
+																"source": {
+																	"name": "SKUNUMBER",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "SKU_NUMBER",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "ITEMDESCRIPTION",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "ITEM_DESCRIPTION",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "STAPLESADVANTAGEITEMDESCRIPTION",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "STAPLES_ADVANTAGE_ITEM_DESCRIPTION",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "SELLUOM",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "SELL_UOM",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "QTYINSELLUOM",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "QTY_IN_SELL_UOM",
+																	"type": "Int32",
+																	"physicalType": "int"
+																}
+															},
+															{
+																"source": {
+																	"name": "QTY",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "QTY",
+																	"type": "Int32",
+																	"physicalType": "int"
+																}
+															},
+															{
+																"source": {
+																	"name": "AVGSELLPRICE",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "AVG_SELL_PRICE",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 32
+																}
+															},
+															{
+																"source": {
+																	"name": "ADJGROSSSALES",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "ADJ_GROSS_SALES",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "DateTime",
+																	"physicalType": "datetime"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_DelimitedDataSource_File_Blob",
+														"type": "DatasetReference",
+														"parameters": {
+															"fileSystem": {
+																"value": "@pipeline().parameters.fileSystemName",
+																"type": "Expression"
+															},
+															"fileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"folderPath": {
+																"value": "@pipeline().parameters.fileStoreLocation",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxStaplesUS,'_',pipeline().parameters.sfxLOAD)",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.schemaName",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "US Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "US - ADLS To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','US - ADLS To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('US - ADLS To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('US - ADLS To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									}
+								]
+							}
+						},
+						{
+							"name": "Switch1 Failure - Notify Teams Channel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Switch1",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','Switch1')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@activity('Switch1').error.Message",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('Switch1').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Load to Detail - Stored Procedure",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Switch1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": {
+									"value": "@if(equals(split(item().name,'.')[0],'Staples Canada Report'),'[SupplyEquipmentOrders].[PWR_STAPLES_POPULATE_CAN_DTL_STAGE]','[SupplyEquipmentOrders].[PWR_STAPLES_POPULATE_US_DTL_STAGE]')",
+									"type": "Expression"
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_power_d365_bi_01",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Load to Detail Failure - Notify Teams Channel_copy1",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Load to Detail - Stored Procedure",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','Load to Detail - Stored Procedure')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@replace(activity('Load to Detail - Stored Procedure').error.Message,'\"','')",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('Load to Detail - Stored Procedure').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Move to Archive",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Switch1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "MoveFile_Staples",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"SourceStore_Location": {
+										"value": "@pipeline().parameters.fileStoreLocation",
+										"type": "Expression"
+									},
+									"SourceStore_Directory": {
+										"value": "@pipeline().parameters.source_Directory",
+										"type": "Expression"
+									},
+									"DestinationStore_Location": {
+										"value": "@pipeline().parameters.fileStoreLocation",
+										"type": "Expression"
+									},
+									"DestinationStore_Directory": {
+										"value": "@pipeline().parameters.destination_Directory",
+										"type": "Expression"
+									},
+									"fileSystemName": {
+										"value": "@pipeline().parameters.fileShareName",
+										"type": "Expression"
+									},
+									"process_ids": {
+										"value": "@variables('process_ids')",
+										"type": "Expression"
+									},
+									"fileName": {
+										"value": "@item().name",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Move to Archive Failure - Notify Teams Channel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Move to Archive",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','Move to Archive')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@replace(activity('Move to Archive').error.Message,'\\','\\\\')",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('Move to Archive').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Delete Blob",
+							"type": "Delete",
+							"dependsOn": [
+								{
+									"activity": "Move to Archive",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ds_DelimitedDataSource_File_Blob",
+									"type": "DatasetReference",
+									"parameters": {
+										"fileSystem": {
+											"value": "@pipeline().parameters.fileSystemName",
+											"type": "Expression"
+										},
+										"fileName": {
+											"value": "@item().name",
+											"type": "Expression"
+										},
+										"folderPath": {
+											"value": "@pipeline().parameters.fileStoreLocation",
+											"type": "Expression"
+										}
+									}
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Get Items Failure - Notify Teams Channel",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Get Source Folder Items",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "SendNotificationToTeamsChannel",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"pipelineRunId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"activityName": {
+							"value": "@concat(pipeline().Pipeline,'-','Get Source Folder Items')",
+							"type": "Expression"
+						},
+						"activityMessage": {
+							"value": "@activity('Get Source Folder Items').error.Message",
+							"type": "Expression"
+						},
+						"activityDuration": {
+							"value": "@activity('Get Source Folder Items').Duration",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Staples Dtl View Proc Failure - Notify Teams Channel",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Staples Detail View Stored procedure",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "SendNotificationToTeamsChannel",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"pipelineRunId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"activityName": {
+							"value": "@concat(pipeline().Pipeline,'-','Staples Detail View Stored procedure')",
+							"type": "Expression"
+						},
+						"activityMessage": {
+							"value": "@activity('Staples Detail View Stored procedure').error.Message",
+							"type": "Expression"
+						},
+						"activityDuration": {
+							"value": "@activity('Staples Detail View Stored procedure').Duration",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Staples Detail View Stored procedure",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "For Each Source Folder Item",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[SupplyEquipmentOrders].[UPDATE_VIEW_PWR_STAPLES_DTL]"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_power_d365_bi_01",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Get CAN Process ID Script",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "For Each Source Folder Item",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "ls_power_d365_bi_01",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "select max(process_id) as process_id from @{concat(pipeline().parameters.schemaName,'.',pipeline().parameters.pfxStaplesCan,'_',pipeline().parameters.sfxDETAIL)}",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "Set Process ID List variable",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Get CAN Process ID Script",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Get US Process ID Script",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "process_ids",
+					"value": {
+						"value": "@createArray(activity('Get CAN Process ID Script').output.resultSets[0].rows[0].process_id,activity('Get US Process ID Script').output.resultSets[0].rows[0].process_id)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Get US Process ID Script",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "For Each Source Folder Item",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "ls_power_d365_bi_01",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "select max(process_id) as process_id from @{concat(pipeline().parameters.schemaName,'.',pipeline().parameters.pfxStaplesUS,'_',pipeline().parameters.sfxDETAIL)}",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			}
+		],
+		"parameters": {
+			"schemaName": {
+				"type": "string",
+				"defaultValue": "SupplyEquipmentOrders"
+			},
+			"sfxLOAD": {
+				"type": "string",
+				"defaultValue": "LOAD"
+			},
+			"sfxSTAGE": {
+				"type": "string",
+				"defaultValue": "STG"
+			},
+			"sfxDETAIL": {
+				"type": "string",
+				"defaultValue": "DTL_STG"
+			},
+			"fileStoreLocation": {
+				"type": "string",
+				"defaultValue": "Azure_Data_Factory/Supply_Equipment_Orders"
+			},
+			"source_Directory": {
+				"type": "string",
+				"defaultValue": "New"
+			},
+			"destination_Directory": {
+				"type": "string",
+				"defaultValue": "Archive"
+			},
+			"fileSystemName": {
+				"type": "string",
+				"defaultValue": "power-bi-blob"
+			},
+			"fileShareName": {
+				"type": "string",
+				"defaultValue": "\\\\cdcfs1"
+			},
+			"pfxStaplesCan": {
+				"type": "string",
+				"defaultValue": "PWR_STAPLES_CAN"
+			},
+			"pfxStaplesUS": {
+				"type": "string",
+				"defaultValue": "PWR_STAPLES_US"
+			},
+			"filename": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"fileName": {
+				"type": "String"
+			},
+			"process_ids": {
+				"type": "Array"
+			}
+		},
+		"folder": {
+			"name": "PowerBI"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-04-04T15:44:40Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

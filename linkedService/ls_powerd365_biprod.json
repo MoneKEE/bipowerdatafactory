@@ -1,0 +1,17 @@
+{
+	"name": "ls_powerd365_biprod",
+	"properties": {
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"connectionString": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "sec-powerd365biprod-connectionstring"
+			}
+		}
+	}
+}

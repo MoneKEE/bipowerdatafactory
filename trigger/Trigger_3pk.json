@@ -1,0 +1,17 @@
+{
+	"name": "Trigger_3pk",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 24,
+				"startTime": "2022-02-11T12:21:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

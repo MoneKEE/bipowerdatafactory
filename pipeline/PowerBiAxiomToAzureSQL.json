@@ -1,0 +1,2382 @@
+{
+	"name": "PowerBiAxiomToAzureSQL",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get Source Folder Items",
+				"description": "Returns a list of delimited files located in the source share folder.",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_DelimitedDataSource_Folder_Blob",
+						"type": "DatasetReference",
+						"parameters": {
+							"fileSystem": {
+								"value": "@pipeline().parameters.fileSystemName",
+								"type": "Expression"
+							},
+							"folderPath": {
+								"value": "@pipeline().parameters.fileStoreLocation",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "For Each Source Folder Item",
+				"description": "Iterates through the output of the Get Metadata activity, unless the pipeline run is storage event-triggered, in which case it takes the value of the \"filename\" parameter.",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Source Folder Items",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@if(endswith(concat('o',pipeline().parameters.filename),'csv'),json(concat('[{\"name\":\"',pipeline().parameters.filename,'\"}]')),activity('Get Source Folder Items').output.childItems)",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Switch1",
+							"description": "Filename determines which case statement to execute.",
+							"type": "Switch",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"on": {
+									"value": "@split(item().name,'.')[0]",
+									"type": "Expression"
+								},
+								"cases": [
+									{
+										"value": "Finance",
+										"activities": [
+											{
+												"name": "Finance - ADLS To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.schemaName,'.',pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxFinance)}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "Date",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "MONTHEND_START_DATE",
+																	"type": "DateTime",
+																	"physicalType": "date"
+																}
+															},
+															{
+																"source": {
+																	"name": "Division",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "DIVISION",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Total Rev",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "TOTAL_REVENUE",
+																	"type": "Single",
+																	"physicalType": "real"
+																}
+															},
+															{
+																"source": {
+																	"name": "Fee Rev",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "FEE_REVENUE",
+																	"type": "Single",
+																	"physicalType": "real"
+																}
+															},
+															{
+																"source": {
+																	"name": "W/Off",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "WRITE_OFF_AMOUNT",
+																	"type": "Single",
+																	"physicalType": "real"
+																}
+															},
+															{
+																"source": {
+																	"name": "IFO*",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "IFO_AMOUNT",
+																	"type": "Single",
+																	"physicalType": "real"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_DelimitedDataSource_File_Blob",
+														"type": "DatasetReference",
+														"parameters": {
+															"fileSystem": {
+																"value": "@pipeline().parameters.fileSystemName",
+																"type": "Expression"
+															},
+															"fileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"folderPath": {
+																"value": "@pipeline().parameters.fileStoreLocation",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxFinance)",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.schemaName",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Finance Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "Finance - ADLS To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','Finance - ADLS To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('Finance - ADLS To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('Finance - ADLS To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "IFO",
+										"activities": [
+											{
+												"name": "IFO - ADLS To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"additionalColumns": [
+															{
+																"name": "DSS_RECORD_SOURCE",
+																"value": {
+																	"value": "@concat(pipeline().parameters.fileStoreLocation,'/',pipeline().parameters.source_Directory,'/',item().name)",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "DSS_LOAD_DATE",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.schemaName,'.',pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxIFO)}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "IFO Current",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "CURRENT_IFO",
+																	"type": "Single",
+																	"physicalType": "real"
+																}
+															},
+															{
+																"source": {
+																	"name": "Date",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "CURRENT_IFO_DATE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Prior Year",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "PRIOR_YEAR",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "% of Gross Prior Year",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "PCT_OF_GROSS_PRIOR_YEAR",
+																	"type": "Single",
+																	"physicalType": "real"
+																}
+															},
+															{
+																"source": {
+																	"name": "% of Fee Prior Year",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "PCT_OF_FEE_PRIOR_YEAR",
+																	"type": "Single",
+																	"physicalType": "real"
+																}
+															},
+															{
+																"source": {
+																	"name": "Current Year",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "CURRENT_YEAR",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "% of Gross Current",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "CURRENT_PCT_OF_GROSS",
+																	"type": "Single",
+																	"physicalType": "real"
+																}
+															},
+															{
+																"source": {
+																	"name": "% of Fee Current",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "CURRENT_PCT_OF_FEE",
+																	"type": "Single",
+																	"physicalType": "real"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_DelimitedDataSource_File_Blob",
+														"type": "DatasetReference",
+														"parameters": {
+															"fileSystem": {
+																"value": "@pipeline().parameters.fileSystemName",
+																"type": "Expression"
+															},
+															"fileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"folderPath": {
+																"value": "@pipeline().parameters.fileStoreLocation",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxIFO)",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.schemaName",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "IFO Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "IFO - ADLS To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','IFO - ADLS To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('IFO - ADLS To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('IFO - ADLS To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "PayrollMultiplier",
+										"activities": [
+											{
+												"name": "Payroll Multiplier - ADLS To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"additionalColumns": [
+															{
+																"name": "DSS_RECORD_SOURCE",
+																"value": {
+																	"value": "@concat(pipeline().parameters.fileStoreLocation,'/',pipeline().parameters.source_Directory,'/',item().name)",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "DSS_LOAD_DATE",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.schemaName,'.',pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxPayrollMultiplier)}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "Week End Date",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "WEEK_END_DATE",
+																	"type": "DateTime",
+																	"physicalType": "date"
+																}
+															},
+															{
+																"source": {
+																	"name": "Payroll Multiplier",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "PAYROLL_MULTIPLIER",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_DelimitedDataSource_File_Blob",
+														"type": "DatasetReference",
+														"parameters": {
+															"fileSystem": {
+																"value": "@pipeline().parameters.fileSystemName",
+																"type": "Expression"
+															},
+															"fileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"folderPath": {
+																"value": "@pipeline().parameters.fileStoreLocation",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxPayrollMultiplier)",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.schemaName",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Payroll Multiplier Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "Payroll Multiplier - ADLS To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','Payroll Multiplier - ADLS To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('Payroll Multiplier - ADLS To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('Payroll Multiplier - ADLS To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "TrendValue",
+										"activities": [
+											{
+												"name": "Trend Value - ADLS To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"additionalColumns": [
+															{
+																"name": "DSS_RECORD_SOURCE",
+																"value": {
+																	"value": "@concat(pipeline().parameters.fileStoreLocation,'/',pipeline().parameters.source_Directory,'/',item().name)",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "DSS_LOAD_DATE",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.schemaName,'.',pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxTrendValue)}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "PA_DATE",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "PA_DATE",
+																	"type": "DateTime",
+																	"physicalType": "date"
+																}
+															},
+															{
+																"source": {
+																	"name": "TrendValue",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "TREND_VALUE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_DelimitedDataSource_File_Blob",
+														"type": "DatasetReference",
+														"parameters": {
+															"fileSystem": {
+																"value": "@pipeline().parameters.fileSystemName",
+																"type": "Expression"
+															},
+															"fileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"folderPath": {
+																"value": "@pipeline().parameters.fileStoreLocation",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxTrendValue)",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.schemaName",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Trend Value Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "Trend Value - ADLS To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','Trend Value - ADLS To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('Trend Value - ADLS To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('Trend Value - ADLS To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "Utilization_Divisions",
+										"activities": [
+											{
+												"name": "Utilization Divisions - ADLS To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"additionalColumns": [
+															{
+																"name": "DSS_RECORD_SOURCE",
+																"value": {
+																	"value": "@concat(pipeline().parameters.fileStoreLocation,'/',pipeline().parameters.source_Directory,'/',item().name)",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "DSS_LOAD_DATE",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.schemaName,'.',pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxUtilizationDivisions)}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "Week End Date",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "WEEK_END_DATE",
+																	"type": "DateTime",
+																	"physicalType": "date"
+																}
+															},
+															{
+																"source": {
+																	"name": "Utilization",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "UTILIZATION",
+																	"type": "Decimal",
+																	"physicalType": "decimal",
+																	"scale": 2,
+																	"precision": 4
+																}
+															},
+															{
+																"source": {
+																	"name": "Division",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "DIVISION",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_DelimitedDataSource_File_Blob",
+														"type": "DatasetReference",
+														"parameters": {
+															"fileSystem": {
+																"value": "@pipeline().parameters.fileSystemName",
+																"type": "Expression"
+															},
+															"fileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"folderPath": {
+																"value": "@pipeline().parameters.fileStoreLocation",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxUtilizationDivisions)",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.schemaName",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Utilization Divisions ADLS Failure - Notify Teams",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "Utilization Divisions - ADLS To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','Utilization Divisions - ADLS To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('Utilization Divisions - ADLS to Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('Utilization Divisions - ADLS to Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "AchievedMultiplier",
+										"activities": [
+											{
+												"name": "Achieved Multiplier - ADLS To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"additionalColumns": [
+															{
+																"name": "DSS_RECORD_SOURCE",
+																"value": {
+																	"value": "@concat(pipeline().parameters.fileStoreLocation,'/',pipeline().parameters.source_Directory,'/',item().name)",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "DSS_LOAD_DATE",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.schemaName,'.',pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxAchievedMultiplier)}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "Week End Date",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "WEEKENDING_DATE",
+																	"type": "DateTime",
+																	"physicalType": "date"
+																}
+															},
+															{
+																"source": {
+																	"name": "Week",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "FISCAL_WEEK",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "Achieved Multiplier",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "ACHIEVED_MULTIPLIER",
+																	"type": "Double",
+																	"physicalType": "float"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_DelimitedDataSource_File_Blob",
+														"type": "DatasetReference",
+														"parameters": {
+															"fileSystem": {
+																"value": "@pipeline().parameters.fileSystemName",
+																"type": "Expression"
+															},
+															"fileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"folderPath": {
+																"value": "@pipeline().parameters.fileStoreLocation",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxAchievedMultiplier)",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.schemaName",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Achieved Multiplier Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "Achieved Multiplier - ADLS To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','Achieved Multiplier - ADLS To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('Achieved Multiplier - ADLS To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('Achieved Multiplier - ADLS To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "BacklogBTE",
+										"activities": [
+											{
+												"name": "Backlog BTE - ADLS To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"additionalColumns": [
+															{
+																"name": "DSS_RECORD_SOURCE",
+																"value": {
+																	"value": "@concat(pipeline().parameters.fileStoreLocation,'/',pipeline().parameters.source_Directory,'/',item().name)",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "DSS_LOAD_DATE",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.schemaName,'.',pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxBacklogBTE)}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "Week End Date",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "WEEKENDING_DATE",
+																	"physicalType": "date"
+																}
+															},
+															{
+																"source": {
+																	"name": "Labor Backlog",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "LABOR_BACKLOG",
+																	"type": "Double",
+																	"physicalType": "float"
+																}
+															},
+															{
+																"source": {
+																	"name": "Labor Book-To-Earn",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "LABOR_BOOK_TO_EARN",
+																	"physicalType": "float"
+																}
+															},
+															{
+																"source": {
+																	"name": "Prior Year Labor Book-To-Earn",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "PRIOR_YEAR_LABOR_BOOK_TO_EARN",
+																	"physicalType": "float"
+																}
+															},
+															{
+																"source": {
+																	"name": "Prior Year Avg Labor Book-To-Earn",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "PRIOR_YEAR_AVG_LABOR_BOOK_TO_EARN",
+																	"physicalType": "float"
+																}
+															},
+															{
+																"source": {
+																	"name": "Current Months Of Labor Backlog",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "CURRENT_MONTHS_OF_LABOR_BACKLOG",
+																	"type": "Double",
+																	"physicalType": "float"
+																}
+															},
+															{
+																"source": {
+																	"name": "Prior Year Months Of Labor Backlog",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "PRIOR_YEAR_MONTHS_OF_LABOR_BACKLOG",
+																	"type": "Double",
+																	"physicalType": "float"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_DelimitedDataSource_File_Blob",
+														"type": "DatasetReference",
+														"parameters": {
+															"fileSystem": {
+																"value": "@pipeline().parameters.fileSystemName",
+																"type": "Expression"
+															},
+															"fileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"folderPath": {
+																"value": "@pipeline().parameters.fileStoreLocation",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxBacklogBTE)",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.schemaName",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Backlog BTE Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "Backlog BTE - ADLS To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','Backlog BTE - ADLS To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('Backlog BTE - ADLS To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('Backlog BTE - ADLS To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "BacklogBTE_Divisions",
+										"activities": [
+											{
+												"name": "Backlog BTE Divisions - ADLS To Load Tables",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"additionalColumns": [
+															{
+																"name": "DSS_RECORD_SOURCE",
+																"value": {
+																	"value": "@concat(pipeline().parameters.fileStoreLocation,'/',pipeline().parameters.source_Directory,'/',item().name)",
+																	"type": "Expression"
+																}
+															},
+															{
+																"name": "DSS_LOAD_DATE",
+																"value": {
+																	"value": "@utcNow()",
+																	"type": "Expression"
+																}
+															}
+														],
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "AzureSqlSink",
+														"preCopyScript": {
+															"value": "TRUNCATE TABLE @{concat(pipeline().parameters.schemaName,'.',pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxBacklogBTEDivisions)}",
+															"type": "Expression"
+														},
+														"writeBehavior": "insert",
+														"sqlWriterUseTableLock": false,
+														"disableMetricsCollection": false
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"mappings": [
+															{
+																"source": {
+																	"name": "Week End Date",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "WEEK_END_DATE",
+																	"type": "DateTime",
+																	"physicalType": "date"
+																}
+															},
+															{
+																"source": {
+																	"name": "Labor Backlog",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "LABOR_BACKLOG",
+																	"type": "Double",
+																	"physicalType": "float"
+																}
+															},
+															{
+																"source": {
+																	"name": "Labor Book-To-Earn",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "LABOR_BTE",
+																	"type": "Double",
+																	"physicalType": "float"
+																}
+															},
+															{
+																"source": {
+																	"name": "Prior Year Labor Book-To-Earn",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "PRIOR_YEAR_LABOR_BTE",
+																	"type": "Double",
+																	"physicalType": "float"
+																}
+															},
+															{
+																"source": {
+																	"name": "Prior Year Avg Labor Book-To-Earn",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "PRIOR_YEAR_AVG_LABOR_BTE",
+																	"type": "Double",
+																	"physicalType": "float"
+																}
+															},
+															{
+																"source": {
+																	"name": "Current Months Of Labor Backlog",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "CURRENT_MONTHS_OF_LABOR_BACKLOG",
+																	"type": "Double",
+																	"physicalType": "float"
+																}
+															},
+															{
+																"source": {
+																	"name": "Prior Year Months Of Labor Backlog",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "PRIOR_YEAR_MONTHS_OF_LABOR_BACKLOG",
+																	"type": "Double",
+																	"physicalType": "float"
+																}
+															},
+															{
+																"source": {
+																	"name": "Prior Year Labor Backlog",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "PRIOR_YEAR_LABOR_BACKLOG",
+																	"type": "Double",
+																	"physicalType": "float"
+																}
+															},
+															{
+																"source": {
+																	"name": "Division",
+																	"type": "String",
+																	"physicalType": "String"
+																},
+																"sink": {
+																	"name": "DIVISION",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_RECORD_SOURCE",
+																	"type": "String",
+																	"physicalType": "nvarchar"
+																}
+															},
+															{
+																"source": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "String"
+																},
+																"sink": {
+																	"name": "DSS_LOAD_DATE",
+																	"type": "DateTime",
+																	"physicalType": "datetime2"
+																}
+															}
+														],
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_DelimitedDataSource_File_Blob",
+														"type": "DatasetReference",
+														"parameters": {
+															"fileSystem": {
+																"value": "@pipeline().parameters.fileSystemName",
+																"type": "Expression"
+															},
+															"fileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"folderPath": {
+																"value": "@pipeline().parameters.fileStoreLocation",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_AzureSQLDatabase",
+														"type": "DatasetReference",
+														"parameters": {
+															"SQLTableName": {
+																"value": "@concat(pipeline().parameters.pfxLOAD,'_',pipeline().parameters.sfxBacklogBTEDivisions)",
+																"type": "Expression"
+															},
+															"SQLSchemaName": {
+																"value": "@pipeline().parameters.schemaName",
+																"type": "Expression"
+															}
+														}
+													}
+												]
+											},
+											{
+												"name": "Backlog BTE Div Load Failure - Notify Teams Channel",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "Backlog BTE Divisions - ADLS To Load Tables",
+														"dependencyConditions": [
+															"Failed"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "SendNotificationToTeamsChannel",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"pipelineRunId": {
+															"value": "@pipeline().RunId",
+															"type": "Expression"
+														},
+														"activityName": {
+															"value": "@concat(pipeline().Pipeline,'-','Backlog BTE Divisions - ADLS To Load Tables')",
+															"type": "Expression"
+														},
+														"activityMessage": {
+															"value": "@replace(activity('Backlog BTE Divisions - ADLS To Load Tables').error.Message,'\"','')",
+															"type": "Expression"
+														},
+														"activityDuration": {
+															"value": "@activity('Backlog BTE Divisions - ADLS To Load Tables').Duration",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									}
+								]
+							}
+						},
+						{
+							"name": "Switch1 Failure - Notify Teams Channel",
+							"description": "Sends activity failure notification the ADF Pipeline Notifications Teams' channel.",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Switch1",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','Switch1')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@activity('Switch1').error.Message",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('Switch1').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Load to ODS Tables",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Switch1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": {
+									"value": "@if(equals(split(item().name,'.')[0],'AchievedMultiplier'),'[axiom].[UPSERT_ODS_AXIOM_ACHIEVED_MULTIPLIER]',if(equals(split(item().name,'.')[0],'BacklogBTE'),'[axiom].[UPSERT_ODS_AXIOM_BACKLOG_BTE]',if(equals(split(item().name,'.')[0],'BacklogBTE_Divisions'),'[axiom].[UPSERT_ODS_AXIOM_BACKLOG_BTE_DIVISIONS]',if(equals(split(item().name,'.')[0],'Finance'),'[axiom].[UPSERT_ODS_AXIOM_FINANCE]',if(equals(split(item().name,'.')[0],'IFO'),'[axiom].[UPSERT_ODS_AXIOM_IFO]',if(equals(split(item().name,'.')[0],'PayrollMultiplier'),'[axiom].[UPSERT_ODS_AXIOM_PAYROLL_MULTIPLIER]',if(equals(split(item().name,'.')[0],'TrendValue'),'[axiom].[UPSERT_ODS_AXIOM_TREND_VALUE]',if(equals(split(item().name,'.')[0],'Utilization_Divisions'),'[axiom].[UPSERT_ODS_AXIOM_UTILIZATION_DIVISIONS]',''))))))))",
+									"type": "Expression"
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_power_d365_bi_01",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "ODS to Stage Tables",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Load to ODS Tables",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": {
+									"value": "@if(equals(split(item().name,'.')[0],'AchievedMultiplier'),'[axiom].[INSERT_STAGE_AXIOM_ACHIEVED_MULTIPLIER]',if(equals(split(item().name,'.')[0],'BacklogBTE'),'[axiom].[INSERT_STAGE_AXIOM_BACKLOG_BTE]',if(equals(split(item().name,'.')[0],'BacklogBTE_Divisions'),'[axiom].[INSERT_STAGE_AXIOM_BACKLOG_BTE_DIVISIONS]',if(equals(split(item().name,'.')[0],'Finance'),'[axiom].[INSERT_STAGE_AXIOM_FINANCE]',if(equals(split(item().name,'.')[0],'IFO'),'[axiom].[INSERT_STAGE_AXIOM_IFO]',if(equals(split(item().name,'.')[0],'PayrollMultiplier'),'[axiom].[INSERT_STAGE_AXIOM_PAYROLL_MULTIPLIER]',if(equals(split(item().name,'.')[0],'TrendValue'),'[axiom].[INSERT_STAGE_AXIOM_TREND_VALUE]',if(equals(split(item().name,'.')[0],'Utilization_Divisions'),'[axiom].[INSERT_STAGE_AXIOM_UTILIZATION_DIVISIONS]',''))))))))",
+									"type": "Expression"
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_power_d365_bi_01",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Stage to Fact Tables",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "ODS to Stage Tables",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": {
+									"value": "@if(equals(split(item().name,'.')[0],'AchievedMultiplier'),'[axiom].[UPSERT_FACT_AXIOM_ACHIEVED_MULTIPLIER]',if(equals(split(item().name,'.')[0],'BacklogBTE'),'[axiom].[UPSERT_FACT_AXIOM_BACKLOG_BTE]',if(equals(split(item().name,'.')[0],'BacklogBTE_Divisions'),'[axiom].[UPSERT_FACT_AXIOM_BACKLOG_BTE_DIVISIONS]',if(equals(split(item().name,'.')[0],'Finance'),'[axiom].[UPSERT_FACT_AXIOM_FINANCE]',if(equals(split(item().name,'.')[0],'IFO'),'[axiom].[UPSERT_FACT_AXIOM_IFO]',if(equals(split(item().name,'.')[0],'PayrollMultiplier'),'[axiom].[UPSERT_FACT_AXIOM_PAYROLL_MULTIPLIER]',if(equals(split(item().name,'.')[0],'TrendValue'),'[axiom].[UPSERT_FACT_AXIOM_TREND_VALUE]',if(equals(split(item().name,'.')[0],'Utilization_Divisions'),'[axiom].[UPSERT_FACT_AXIOM_UTILIZATION_DIVISIONS]',''))))))))",
+									"type": "Expression"
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_power_d365_bi_01",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "ODS Failure - Notify Teams Channel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Load to ODS Tables",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','Load To ODS Tables')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@replace(activity('Load to ODS Tables').error.Message,'\"','')",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('Load to ODS Tables').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Stage Failure - Notify Teams Channel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "ODS to Stage Tables",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','ODS To Stage Tables')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@replace(activity('ODS to Stage Tables').error.Message,'\"','')",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('ODS to Stage Tables').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Fact Failure - Notify Teams Channel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Stage to Fact Tables",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','Stage To Fact Tables')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@replace(activity('Stage to Fact Tables').error.Message,'\"','')",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('Stage to Fact Tables').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Move to Archive",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Switch1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "MoveFile",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"SourceStore_Location": {
+										"value": "@pipeline().parameters.fileStoreLocation",
+										"type": "Expression"
+									},
+									"SourceStore_Directory": {
+										"value": "@pipeline().parameters.source_Directory",
+										"type": "Expression"
+									},
+									"DestinationStore_Location": {
+										"value": "@pipeline().parameters.fileStoreLocation",
+										"type": "Expression"
+									},
+									"DestinationStore_Directory": {
+										"value": "@pipeline().parameters.destination_Directory",
+										"type": "Expression"
+									},
+									"fileSystemName": {
+										"value": "@pipeline().parameters.fileShareName",
+										"type": "Expression"
+									},
+									"filename": {
+										"value": "@item().name",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "Delete Blob",
+							"type": "Delete",
+							"dependsOn": [
+								{
+									"activity": "Move to Archive",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ds_DelimitedDataSource_File_Blob",
+									"type": "DatasetReference",
+									"parameters": {
+										"fileSystem": {
+											"value": "@pipeline().parameters.fileSystemName",
+											"type": "Expression"
+										},
+										"fileName": {
+											"value": "@item().name",
+											"type": "Expression"
+										},
+										"folderPath": {
+											"value": "@pipeline().parameters.fileStoreLocation",
+											"type": "Expression"
+										}
+									}
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								}
+							}
+						},
+						{
+							"name": "Move to Archive Failure - Notify Teams Channel",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Move to Archive",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "SendNotificationToTeamsChannel",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"activityName": {
+										"value": "@concat(pipeline().Pipeline,'-','Move to Archive')",
+										"type": "Expression"
+									},
+									"activityMessage": {
+										"value": "@replace(activity('Move to Archive').error.Message,'\\','\\\\')",
+										"type": "Expression"
+									},
+									"activityDuration": {
+										"value": "@activity('Move to Archive').Duration",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Get Items Failure - Notify Teams Channel",
+				"description": "Sends activity failure notification the ADF Pipeline Notifications Teams' channel.",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Get Source Folder Items",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "SendNotificationToTeamsChannel",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"pipelineRunId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"activityName": {
+							"value": "@concat(pipeline().Pipeline,'-','Get Source Folder Items')",
+							"type": "Expression"
+						},
+						"activityMessage": {
+							"value": "@activity('Get Source Folder Items').error.Message",
+							"type": "Expression"
+						},
+						"activityDuration": {
+							"value": "@activity('Get Source Folder Items').Duration",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Finance View Procedure Failure - Notify Teams Channel",
+				"description": "Sends activity failure notification the ADF Pipeline Notifications Teams' channel.",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Axiom Finance View Stored procedure",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "SendNotificationToTeamsChannel",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"pipelineRunId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"activityName": {
+							"value": "@concat(pipeline().Pipeline,'-','Axiom Finance View Stored procedure')",
+							"type": "Expression"
+						},
+						"activityMessage": {
+							"value": "@activity('Axiom Finance View Stored procedure').error.Message",
+							"type": "Expression"
+						},
+						"activityDuration": {
+							"value": "@activity('Axiom Finance View Stored procedure').Duration",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Axiom Finance View Stored procedure",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "For Each Source Folder Item",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[axiom].[UPDATE_VIEW_AXIOM_FINANCE_C]"
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_power_d365_bi_01",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"schemaName": {
+				"type": "string",
+				"defaultValue": "Axiom"
+			},
+			"pfxLOAD": {
+				"type": "string",
+				"defaultValue": "LOAD"
+			},
+			"sfxAchievedMultiplier": {
+				"type": "string",
+				"defaultValue": "AXIOM_ACHIEVED_MULTIPLIER"
+			},
+			"sfxBacklogBTE": {
+				"type": "string",
+				"defaultValue": "AXIOM_BACKLOG_BTE"
+			},
+			"sfxBacklogBTEDivisions": {
+				"type": "string",
+				"defaultValue": "AXIOM_BACKLOG_BTE_DIVISIONS"
+			},
+			"pfxODS": {
+				"type": "string",
+				"defaultValue": "ODS"
+			},
+			"pfxSTAGE": {
+				"type": "string",
+				"defaultValue": "STAGE"
+			},
+			"pfxFACT": {
+				"type": "string",
+				"defaultValue": "FACT"
+			},
+			"fileStoreLocation": {
+				"type": "string",
+				"defaultValue": "Azure_Data_Factory/Axiom"
+			},
+			"source_Directory": {
+				"type": "string",
+				"defaultValue": "New"
+			},
+			"destination_Directory": {
+				"type": "string",
+				"defaultValue": "Archive"
+			},
+			"sfxFinance": {
+				"type": "string",
+				"defaultValue": "AXIOM_FINANCE"
+			},
+			"sfxIFO": {
+				"type": "string",
+				"defaultValue": "AXIOM_IFO"
+			},
+			"sfxPayrollMultiplier": {
+				"type": "string",
+				"defaultValue": "AXIOM_PAYROLL_MULTIPLIER"
+			},
+			"sfxTrendValue": {
+				"type": "string",
+				"defaultValue": "AXIOM_TREND_VALUE"
+			},
+			"sfxUtilizationDivisions": {
+				"type": "string",
+				"defaultValue": "AXIOM_UTILIZATION_DIVISIONS"
+			},
+			"fileSystemName": {
+				"type": "string",
+				"defaultValue": "power-bi-blob"
+			},
+			"fileShareName": {
+				"type": "string",
+				"defaultValue": "\\\\cdcfs1"
+			},
+			"filename": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"fileName": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "PowerBI"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-04-04T15:44:40Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

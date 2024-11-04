@@ -1,0 +1,19 @@
+{
+	"name": "ds_PROD_DataverseStringmap",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_dynamics_ce_prod",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "Dataverse"
+		},
+		"annotations": [],
+		"type": "DynamicsCrmEntity",
+		"schema": [],
+		"typeProperties": {
+			"entityName": "stringmap"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

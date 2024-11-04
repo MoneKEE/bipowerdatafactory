@@ -1,0 +1,30 @@
+{
+	"name": "ls_fileserver_host",
+	"properties": {
+		"parameters": {
+			"srcHostName": {
+				"type": "string",
+				"defaultValue": "\\\\cdcfs1"
+			}
+		},
+		"annotations": [],
+		"type": "FileServer",
+		"typeProperties": {
+			"host": "@{linkedService().srcHostName}",
+			"userId": "POWERENG\\SRVCAzureDataFactory",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AzureKeyVault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "sec-srvcazuredatafactory-sa-password"
+			}
+		},
+		"connectVia": {
+			"referenceName": "integrationRuntime1",
+			"type": "IntegrationRuntimeReference"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/linkedservices"
+}
